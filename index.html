@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIFアニメ作画ゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yomogi&family=Yusei+Magic&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Yusei Magic","Yomogi","Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+    background:#f7a8b3;
+    color:#26221f;
+    padding:14px 12px 42px;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+  h1{font-size:15px;line-height:1.3;margin:2px 0 4px;letter-spacing:.02em}
+  .headrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap}
+  .headrow h1{margin-bottom:4px}
+  .langrow{display:flex;gap:6px;flex-shrink:0;padding-top:2px}
+  .langbtn{font:inherit;font-size:14px;font-weight:700;min-width:42px;padding:10px 11px;border:2px solid #f2c894;border-radius:999px;background:#fff;color:#5b4326;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .langbtn.active{background:#f79c1d;border-color:#e07f00;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18)}
+  #bnote{font-size:14px;font-weight:700;color:#e60012;margin:0 0 8px}
+  #timelineBox, #stage{direction:ltr}
+  @media (max-width:560px){
+    .langrow{gap:4px}
+    .langbtn{min-width:30px;padding:7px 5px;font-size:11px}
+    .headrow h1{font-size:12px}
+    .poslabel{font-size:clamp(8px,2.4vw,11px)}
+  }
+
+  .row{display:flex;gap:10px}
+  .btn{
+    appearance:none;border:2.5px solid #26221f;border-radius:10px;
+    background:#fff;color:#26221f;
+    font-family:inherit;font-weight:700;cursor:pointer;
+    padding:10px 6px;font-size:16px;line-height:1.25;
+    box-shadow:0 2px 0 #26221f22;
+    user-select:none;touch-action:manipulation;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.active{background:#fff6d8;outline:3px solid #fff3;box-shadow:inset 0 0 0 2px #e58a00}
+  .btn:disabled{opacity:.38;cursor:default;transform:none}
+  .btn.on{background:#5b3a1a;color:#fff;border-color:#5b3a1a}
+  .toolrow .btn{flex:1;font-size:17px;padding:13px 4px}
+
+  #stage{
+    background:#fff;border:2.5px solid #26221f;border-radius:4px;
+    margin-top:12px;overflow:hidden;line-height:0;
+  }
+  #canvas{width:100%;height:auto;display:block;touch-action:none;background:#fff;-webkit-touch-callout:none}
+
+  .poslabel{
+    display:flex;align-items:center;gap:6px;margin-top:14px;
+    color:#e60012;font-weight:800;font-size:13px;white-space:nowrap;
+  }
+  .poslabel .tri{color:#e60012;font-size:1.05em;line-height:1}
+  #slideHint{font-size:.85em;font-weight:700;color:#8a3a44}
+
+  #timelineBox{position:relative;margin-top:2px;padding-top:16px}
+  #marker{
+    position:absolute;top:-14px;transform:translateX(-50%);z-index:7;
+    color:#e60012;font-size:18px;line-height:1;transition:left .15s;
+    width:44px;text-align:center;padding:12px 0 6px;
+    cursor:ew-resize;touch-action:none;user-select:none;
+  }
+  #timeline{
+    display:flex;border:3px solid #141210;border-radius:4px;overflow:hidden;background:#fff;
+    position:relative;
+  }
+  /* draggable black line at the head of each block (from the 2nd picture on) */
+  .bhandle{
+    position:absolute;top:0;bottom:0;width:16px;margin-left:-8px;z-index:6;
+    cursor:ew-resize;touch-action:none;flex:none;
+  }
+  .bhandle::after{
+    content:"";position:absolute;top:0;bottom:0;left:50%;width:4px;margin-left:-2px;
+    background:#141210;border-radius:2px;
+  }
+  .bhandle:hover::after,.bhandle.dragging::after{background:#e60012}
+  /* the frame-0 line sits inside the band's left edge so it stays visible and grabbable */
+  .bhandle.zero{margin-left:0;width:14px}
+  .bhandle.zero::after{left:0;margin-left:0}
+  .seg{
+    flex:1;text-align:center;padding:8px 0 6px;font-size:14px;font-weight:800;
+    border-right:2px solid #141210;cursor:pointer;user-select:none;background:#fff;color:#141210;
+    min-width:0;
+  }
+  .seg:last-child{border-right:none}
+  .seg.alt{background:#ffedef}
+  .seg.bend{border-right:4px solid #141210}
+  /* one segment per block （枠）: width is proportional to its frame count */
+  .blk{
+    flex-basis:0;text-align:center;padding:9px 0 7px;font-size:15px;font-weight:800;
+    border-right:3px solid #141210;cursor:pointer;user-select:none;background:#fff;color:#141210;
+    min-width:0;overflow:hidden;
+  }
+  .blk:last-child{border-right:none}
+  .blk.alt{background:#ffedef}
+  .blk.cur{background:#ffe9a8;box-shadow:inset 0 0 0 2px #e58a00}
+  .seg.empty{background:#f6dde0;color:#cf9aa2;font-size:8px;font-weight:600;padding-top:11px}
+  .seg.cur{background:#ffe9a8;color:#141210;box-shadow:inset 0 0 0 2px #e58a00}
+  .ruler{display:flex;justify-content:space-between;font-size:21px;font-weight:700;margin-top:5px;padding:0 1px}
+
+  .midrow{display:flex;gap:10px;align-items:flex-end;margin-top:12px}
+  .midcol{flex:0 0 24%;display:flex;flex-direction:column;gap:6px}
+  #btnInbetween{flex:none;width:100%;font-size:16px;padding:14px 4px}
+  #btnDelPic{flex:none;width:100%;font-size:12px;padding:7px 2px}
+  #btnLayer{flex:0 0 24%;font-size:16px;padding:14px 4px}
+  #btnOnion{flex:0 0 20%;font-size:15px;padding:10px 4px}
+  .onionGroup{flex:1;min-width:0}
+  .onionGroup .glabel{font-size:14px;font-weight:800;margin:0 0 5px 2px;color:#26221f}
+  .onionGroup .grow{display:flex;gap:6px}
+  .onionGroup .btn{flex:1;font-size:13px;padding:10px 2px;min-width:0}
+  .onionGroup .btn.on{background:#5b3a1a;color:#fff}
+
+  .bottomrow{display:flex;gap:14px;justify-content:center;margin-top:20px}
+  .bottomrow .btn{flex:0 1 30%;font-size:17px;padding:16px 4px}
+  #btnPlay.playing{background:#e60012;color:#fff;border-color:#8f000b}
+
+  #status{font-size:13px;color:#7c2d38;font-weight:700;min-height:1.5em;margin-top:12px;text-align:center}
+  .note{font-size:14px;color:#8a3a44;line-height:1.85;margin-top:6px;white-space:pre-line}
+  .note .chip{background:#fff;border:2px solid #26221f;border-radius:7px;padding:0 6px;font-weight:700;white-space:nowrap;color:#26221f}
+  .note .hl{color:#e60012;font-weight:800}
+
+  /* GIF preview: floating overlay (does not shrink the drawing space) */
+  #gifOverlay{
+    position:fixed;inset:0;background:rgba(38,20,22,.55);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:18px;
+  }
+  #gifOverlay.show{display:flex}
+  #gifCard{
+    background:#fff7f8;border:3px solid #26221f;border-radius:14px;
+    padding:16px;max-width:440px;width:100%;text-align:center;
+    max-height:88vh;overflow:auto;
+  }
+  #gifCard h2{font-size:16px;margin:0 0 10px}
+  #gifImg{width:100%;height:auto;border:2px solid #26221f;border-radius:4px;background:#fff}
+  #gifCard .row{margin-top:12px}
+  #gifCard .btn{flex:1;text-decoration:none;display:block}
+
+  /* layer panel: floating overlay like the GIF preview */
+  #layerOverlay{
+    position:fixed;inset:0;background:rgba(38,20,22,.55);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:18px;
+  }
+  #layerOverlay.show{display:flex}
+  #layerCard{
+    background:#fff7f8;border:3px solid #26221f;border-radius:14px;
+    padding:16px;max-width:440px;width:100%;
+    max-height:88vh;overflow:auto;
+  }
+  #layerCard h2{font-size:17px;margin:0 0 12px;text-align:center}
+  .lrow{
+    display:flex;align-items:center;gap:10px;background:#fff;
+    border:2.5px solid #26221f;border-radius:10px;padding:6px 10px 6px 6px;
+    margin-bottom:8px;cursor:pointer;user-select:none;
+  }
+  .lrow.sel{background:#fff6d8;box-shadow:inset 0 0 0 2px #e58a00}
+  .lthumb{width:54px;height:48px;border:1.5px solid #26221f;border-radius:4px;background:#fff;flex:none}
+  .lname{font-weight:800;font-size:16px;flex:1}
+  .ldot{width:26px;height:26px;border-radius:50%;border:2px solid #26221f;flex:none}
+  .layerBtns{display:flex;gap:8px;margin-top:4px}
+  .layerBtns .btn{flex:1;font-size:13px;padding:10px 2px}
+  .layerOpacityBox{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .layerOpacityBox .lopLabel{font-weight:800;font-size:15px}
+  .layerOpacityBox input[type=range]{flex:1;accent-color:#e60012;height:28px}
+  #layerOpacityVal{font-weight:800;font-size:16px;min-width:2em;text-align:right}
+  #layerInfo{font-size:12px;color:#7c2d38;font-weight:700;margin:10px 0 0;line-height:1.6}
+  #layerPalette{display:none;flex-wrap:wrap;gap:10px;margin-top:12px;justify-content:center}
+  #layerPalette.show{display:flex}
+  .swatch{
+    width:38px;height:38px;border-radius:50%;border:2.5px solid #26221f;
+    cursor:pointer;padding:0;flex:none;appearance:none;
+  }
+  .swatch.sel{box-shadow:0 0 0 3px #fff7f8,0 0 0 6px #e58a00}
+  #btnLayerClose{width:100%;margin-top:12px}
+  @media (max-width:420px){
+    .headrow h1{font-size:11px}
+    .btn{font-size:14px}
+    .toolrow .btn{font-size:15px}
+    #btnInbetween{font-size:14px}
+    #btnLayer{font-size:14px}
+    #btnOnion{font-size:13px}
+    .onionGroup .btn{font-size:11px;padding:9px 1px}
+    .onionGroup .glabel{font-size:12px}
+    .bottomrow .btn{font-size:15px}
+  }
+  /* Dark mode: follow the device setting. The canvas "paper" stays white. */
+  @media (prefers-color-scheme: dark){
+    body{background:#2a1e24;color:#f7ecef}
+    .btn{background:#4b3540;color:#f7ecef;border-color:#120d10;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+    .btn.active{background:#ffe9a8;color:#26221f}
+    .btn.on{background:#c98a3d;color:#201304;border-color:#c98a3d}
+    .poslabel,.poslabel .tri{color:#ff7d8f}
+    #marker{color:#ff7d8f}
+    #status{color:#f0b7c1}
+    .note{color:#d8a7b2}
+    .note .hl{color:#ff8fa0}
+    #slideHint{color:#d8a7b2}
+    #bnote{color:#ff8fa0}
+    #gifCard,#layerCard{background:#3a2931;color:#f7ecef;border-color:#120d10}
+    .lrow{background:#2e2129;color:#f7ecef;border-color:#120d10}
+    .lrow.sel{background:#ffe9a8;color:#26221f}
+    #gifImg{border-color:#120d10}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="headrow">
+    <h1><span id="titleMain">GIFアニメ作画ゲーム</span></h1>
+    <div class="langrow">
+      <button class="langbtn" data-lang="ja">日</button>
+      <button class="langbtn" data-lang="en">EN</button>
+      <button class="langbtn" data-lang="ko">한</button>
+      <button class="langbtn" data-lang="zh">中</button>
+      <button class="langbtn" data-lang="fr">FR</button>
+      <button class="langbtn" data-lang="es">ES</button>
+      <button class="langbtn" data-lang="ar">ع</button>
+      <button class="langbtn" data-lang="th">ไทย</button>
+    </div>
+  </div>
+  <div id="bnote"></div>
+
+  <!-- 上段：ツール -->
+  <div class="row toolrow">
+    <button class="btn active" id="toolPen">ペン</button>
+    <button class="btn" id="toolPencil">鉛筆</button>
+    <button class="btn" id="toolEraser">消しゴム</button>
+    <button class="btn" id="btnUndo">1つ<br>もどる</button>
+    <button class="btn" id="btnRedo">1つ<br>すすむ</button>
+  </div>
+
+  <!-- 描画スペース -->
+  <div id="stage"><canvas id="canvas" width="600" height="540"></canvas></div>
+
+  <!-- 表示してるフレーム位置 -->
+  <div class="poslabel"><span class="tri">▼</span><span id="posLabel">表示しているフレーム</span><span id="posNum">:1コマ目</span><span id="slideHint">(スライド移動できます。1秒24コマ)</span></div>
+  <div id="timelineBox">
+    <div id="marker">▼</div>
+    <div id="timeline"></div>
+    <div class="ruler"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+  </div>
+
+  <!-- 中割・オニオンスキン -->
+  <div class="midrow">
+    <div class="midcol">
+      <button class="btn" id="btnInbetween">中割を<br>追加</button>
+      <button class="btn" id="btnDelPic">中割りを削除</button>
+    </div>
+    <button class="btn" id="btnLayer">レイヤー<br>調整</button>
+    <button class="btn" id="btnOnion"><span id="onionBtnLabel">オニオン<br>スキン</span><br><span id="onionState">OFF</span></button>
+    <div class="onionGroup">
+      <p class="glabel" id="onionLabel">オニオンスキン</p>
+      <div class="grow">
+        <button class="btn onion-toggle" data-off="-2">前の前</button>
+        <button class="btn onion-toggle on" data-off="-1">前</button>
+        <button class="btn onion-toggle on" data-off="1">次</button>
+        <button class="btn onion-toggle" data-off="2">次の次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下段：保存・再生 -->
+  <div class="bottomrow">
+    <button class="btn" id="btnGif">GIFで<br>保存</button>
+    <button class="btn" id="btnPlay">再生<br>▶</button>
+    <button class="btn" id="btnFirst">最初<br>から</button>
+  </div>
+
+  <p id="status"></p>
+  <p class="note" id="noteText">遊び方
+・最初は絵「1」が<b class='hl'>24コマ全部</b>の絵です。帯をタップするか、赤い▼をスライドすると表示するコマが移ります
+・<span class='chip'>中割を追加</span>：選んだコマの後ろで絵が分かれ、新しい絵になります
+・絵の先頭の<b class='hl'>黒い線をドラッグ</b>すると、前後の絵のコマ数が変わります。線を飛び越すと絵の中身が交代します。一番左の線を右へ引くと、先頭に白紙の絵が増えます
+・道具は<span class='chip'>ペン</span>／<span class='chip'>鉛筆</span>（かすれた線）／<span class='chip'>消しゴム</span>。<span class='chip'>1つもどる</span>で描き直せます
+・<span class='chip'>レイヤー調整</span>：絵を重ねて描けます（<b class='hl'>最大5枚</b>）。レイヤーの数・色・透明度は全ての絵で共通です
+・<span class='chip'>中割りを削除</span>：表示中の絵を消します
+・<b class='hl'>オニオンスキン</b>：前後の絵が透けて見えます
+・<span class='chip'>再生</span>：24コマを<b class='hl'>1秒24コマ</b>で再生。
+・<span class='chip'>GIFで保存</span>：GIFに書き出します</p>
+</div>
+
+<!-- レイヤー調整（浮き表示ポップアップ） -->
+<div id="layerOverlay">
+  <div id="layerCard">
+    <h2 id="layerTitle">レイヤー</h2>
+    <div id="layerList"></div>
+    <div class="layerBtns">
+      <button class="btn" id="btnLayerAdd">レイヤーを<br>追加</button>
+      <button class="btn" id="btnLayerDel">選択してる<br>レイヤーを削除</button>
+      <button class="btn" id="btnLayerColor">レイヤーの<br>色を変更</button>
+    </div>
+    <div id="layerPalette"></div>
+    <div class="layerOpacityBox">
+      <span class="lopLabel" id="opacityLabel">透明度</span>
+      <input type="range" id="layerOpacity" min="10" max="100" step="5" value="100">
+      <span id="layerOpacityVal">100</span>
+    </div>
+    <p id="layerInfo"></p>
+    <button class="btn" id="btnLayerClose">閉じる</button>
+  </div>
+</div>
+
+<!-- GIFプレビュー（浮き表示） -->
+<div id="gifOverlay">
+  <div id="gifCard">
+    <h2 id="gifTitle">GIFアニメができました</h2>
+    <img id="gifImg" alt="作成したGIFアニメ">
+    <div class="row">
+      <a class="btn" id="gifDownload" download="gif-animation.gif">保存する</a>
+      <button class="btn" id="gifClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+var W = 600, H = 540;
+var FPS = 24;
+
+/* ============ language (日本語 / English) ============ */
+var LANG_KEY = "gifAnimGame.lang";
+var LANGS = ["ja", "en", "ko", "zh", "fr", "es", "ar", "th"];
+var lang = "ja";
+try { var savedLang = localStorage.getItem(LANG_KEY); if (LANGS.indexOf(savedLang) >= 0) lang = savedLang; } catch(e){}
+var STR = {
+  ja: {
+    title: "GIFアニメ作画ゲーム", titleHtml: "GIFアニメ<br>作画ゲーム", bnote: "ブラウザで開くとGIFアニメ保存できます",
+    pen: "ペン", pencil: "鉛筆", eraser: "消しゴム", undo: "1つ<br>もどる", redo: "1つ<br>すすむ",
+    posLabel: "表示しているフレーム", slideHint: "(スライド移動できます。1秒24コマ)", posNum: ":{n}コマ目",
+    addInbetween: "中割を<br>追加", deletePic: "中割りを削除", layersBtn: "レイヤー<br>調整",
+    onionBtn: "オニオン<br>スキン", onionLabel: "オニオンスキン",
+    onionPP: "前の前", onionP: "前", onionN: "次", onionNN: "次の次",
+    gifSave: "GIFで<br>保存", play: "再生<br>▶", stop: "停止<br>■", reset: "最初<br>から",
+    layerTitle: "レイヤー", layerAdd: "レイヤーを<br>追加", layerDel: "選択してる<br>レイヤーを削除",
+    layerColor: "レイヤーの<br>色を変更", opacity: "透明度", close: "閉じる",
+    layerName: "レイヤー{n}",
+    layerInfo: "レイヤーは全ての絵で共通です（サムネイルは今の絵「{p}」のもの）。選んだレイヤーに描けます（全 {count} 枚・上限 {max} 枚）。色は線の色、透明度は線の薄さです。",
+    gifTitle: "GIFアニメができました", gifSaveLink: "保存する", gifAlt: "作成したGIFアニメ",
+    showing: "コマ {n} を表示中（絵「{p}」、コマ {a}〜{b} の枠）",
+    addedHead: "0フレーム目に新しい絵「1」が追加されました。元の絵は絵「{p}」（コマ {a}〜{b}）になりました",
+    swapped: "黒線が飛び越えたので、絵の中身が交代しました。いまの絵「{p}」はコマ {a}〜{b} です",
+    resized: "絵「{p1}」はコマ {a1}〜{b1}、絵「{p2}」はコマ {a2}〜{b2} になりました",
+    splitDone: "コマ {n} の後ろで区切りました。新しい絵「{p}」はコマ {a}〜{b} の枠です（絵は全 {total} 枚）",
+    erased: "絵を消しました。「1つもどる」で戻せます",
+    deletedStatus: "絵「{p}」を削除しました（絵は全 {total} 枚）。「1つもどる」で戻せます",
+    layerReady: "レイヤー{n} に描けます（全ての絵で共通）",
+    resetStatus: "全部リセットしました。「1つもどる」でリセット前に戻せます",
+    gifMaking: "GIFを作成中…", gifMade: "カラーGIFを作成しました（24コマ・絵 {total} 枚）",
+    layerUndo: "レイヤーを変更する前の状態に戻しました", layerRedo: "レイヤーを変更した状態に進めました",
+    eraseUndo: "絵を消す前の状態に戻しました", eraseRedo: "絵を消した状態に進めました",
+    deleteUndo: "中割りを削除する前の状態に戻しました", deleteRedo: "中割りを削除した状態に進めました",
+    resetUndo: "リセットする前の状態に戻しました", resetRedo: "リセットした状態に進めました",
+    note: "遊び方\n・最初は絵「1」が<b class='hl'>24コマ全部</b>の絵です。帯をタップするか、赤い▼をスライドすると表示するコマが移ります\n・<span class='chip'>中割を追加</span>：選んだコマの後ろで絵が分かれ、新しい絵になります\n・絵の先頭の<b class='hl'>黒い線をドラッグ</b>すると、前後の絵のコマ数が変わります。線を飛び越すと絵の中身が交代します。一番左の線を右へ引くと、先頭に白紙の絵が増えます\n・道具は<span class='chip'>ペン</span>／<span class='chip'>鉛筆</span>（かすれた線）／<span class='chip'>消しゴム</span>。<span class='chip'>1つもどる</span>で描き直せます\n・<span class='chip'>レイヤー調整</span>：絵を重ねて描けます（<b class='hl'>最大5枚</b>）。レイヤーの数・色・透明度は全ての絵で共通です\n・<span class='chip'>中割りを削除</span>：表示中の絵を消します\n・<b class='hl'>オニオンスキン</b>：前後の絵が透けて見えます\n・<span class='chip'>再生</span>：24コマを<b class='hl'>1秒24コマ</b>で再生。\n・<span class='chip'>GIFで保存</span>：GIFに書き出します"
+  },
+  en: {
+    title: "GIF Animation Drawing Game", titleHtml: "GIF Animation<br>Drawing Game", bnote: "Open in a browser to save the GIF animation",
+    pen: "Pen", pencil: "Pencil", eraser: "Eraser", undo: "Undo", redo: "Redo",
+    posLabel: "Frame shown", slideHint: "(Slide to move. 24 fps)", posNum: ": frame {n}",
+    addInbetween: "Add<br>in-between", deletePic: "Delete", layersBtn: "Layers",
+    onionBtn: "Onion<br>skin", onionLabel: "Onion skin",
+    onionPP: "Prev 2", onionP: "Prev", onionN: "Next", onionNN: "Next 2",
+    gifSave: "Save<br>GIF", play: "Play<br>▶", stop: "Stop<br>■", reset: "Reset",
+    layerTitle: "Layers", layerAdd: "Add<br>layer", layerDel: "Delete<br>layer",
+    layerColor: "Change<br>color", opacity: "Opacity", close: "Close",
+    layerName: "Layer {n}",
+    layerInfo: "Layers are shared by all pictures (the thumbnails show the current picture {p}). You draw on the selected layer ({count} layers, max {max}). Color is the line color; opacity is how faint the lines are.",
+    gifTitle: "Your GIF is ready", gifSaveLink: "Save", gifAlt: "Your GIF animation",
+    showing: "Showing frame {n} (picture {p}, frames {a}–{b})",
+    addedHead: "Added a new picture 1 at frame 0. The original picture is now picture {p} (frames {a}–{b}).",
+    swapped: "The black line jumped over, so the pictures swapped contents. Picture {p} now covers frames {a}–{b}.",
+    resized: "Picture {p1} is now frames {a1}–{b1}, and picture {p2} is frames {a2}–{b2}.",
+    splitDone: "Split after frame {n}. New picture {p} covers frames {a}–{b} ({total} pictures in all).",
+    erased: "Erased the picture. Use Undo to bring it back.",
+    deletedStatus: "Deleted picture {p} ({total} pictures left). Use Undo to bring it back.",
+    layerReady: "You can draw on Layer {n} (shared by all pictures).",
+    resetStatus: "Reset everything. Use Undo to go back to before the reset.",
+    gifMaking: "Making GIF…", gifMade: "Color GIF created (24 frames, {total} pictures)",
+    layerUndo: "Back to before the layer change", layerRedo: "Reapplied the layer change",
+    eraseUndo: "Back to before the picture was erased", eraseRedo: "Erased the picture again",
+    deleteUndo: "Back to before the picture was deleted", deleteRedo: "Deleted the picture again",
+    resetUndo: "Back to before the reset", resetRedo: "Reapplied the reset",
+    note: "How to play\n• Picture 1 starts as the picture for <b class='hl'>all 24 frames</b>. Tap the band or slide the red ▼ to change the frame shown.\n• <span class='chip'>Add in-between</span>: splits the picture after the selected frame into a new picture.\n• Drag the <b class='hl'>black line</b> at a picture's head to change how many frames each picture gets. Crossing a line swaps the pictures' contents. Drag the far-left line right to add a blank picture at the start.\n• Tools: <span class='chip'>Pen</span> / <span class='chip'>Pencil</span> (scratchy line) / <span class='chip'>Eraser</span>. <span class='chip'>Undo</span> fixes mistakes.\n• <span class='chip'>Layers</span>: stack drawings (<b class='hl'>up to 5</b>). Layer count, colour and opacity are shared by all pictures.\n• <span class='chip'>Delete</span>: removes the shown picture.\n• <b class='hl'>Onion skin</b>: neighbouring pictures show through.\n• <span class='chip'>Play</span>: plays all 24 frames at <b class='hl'>24 fps</b>.\n• <span class='chip'>Save GIF</span>: exports a GIF."
+  },
+  ko: {
+    title: "GIF 애니메이션 작화 게임", titleHtml: "GIF 애니메이션<br>작화 게임", bnote: "브라우저에서 열면 GIF 애니메이션을 저장할 수 있습니다",
+    pen: "펜", pencil: "연필", eraser: "지우개", undo: "하나<br>되돌리기", redo: "하나<br>다시하기",
+    posLabel: "표시 중인 프레임", slideHint: "(슬라이드 이동 가능. 1초 24프레임)", posNum: ":{n}프레임",
+    addInbetween: "인비트윈<br>추가", deletePic: "인비트윈 삭제", layersBtn: "레이어<br>조정",
+    onionBtn: "어니언<br>스킨", onionLabel: "어니언 스킨",
+    onionPP: "전전", onionP: "전", onionN: "다음", onionNN: "다다음",
+    gifSave: "GIF로<br>저장", play: "재생<br>▶", stop: "정지<br>■", reset: "처음<br>부터",
+    layerTitle: "레이어", layerAdd: "레이어<br>추가", layerDel: "선택한<br>레이어 삭제",
+    layerColor: "레이어<br>색상 변경", opacity: "투명도", close: "닫기",
+    layerName: "레이어 {n}",
+    layerInfo: "레이어는 모든 그림에서 공통입니다(썸네일은 현재 그림 {p}의 것입니다). 선택한 레이어에 그릴 수 있습니다(총 {count}장, 최대 {max}장). 색상은 선의 색, 투명도는 선의 옅은 정도입니다.",
+    gifTitle: "GIF 애니메이션이 완성됐습니다", gifSaveLink: "저장", gifAlt: "만든 GIF 애니메이션",
+    showing: "{n}프레임을 표시 중(그림 {p}, 프레임 {a}~{b}의 틀)",
+    addedHead: "0프레임에 새 그림 1이 추가되었습니다. 원래 그림은 그림 {p}(프레임 {a}~{b})가 되었습니다",
+    swapped: "검은 선이 뛰어넘어 그림의 내용이 바뀌었습니다. 현재 그림 {p}는 프레임 {a}~{b}입니다",
+    resized: "그림 {p1}는 프레임 {a1}~{b1}, 그림 {p2}는 프레임 {a2}~{b2}가 되었습니다",
+    splitDone: "프레임 {n} 뒤에서 나눴습니다. 새 그림 {p}는 프레임 {a}~{b}의 틀입니다(그림은 총 {total}장)",
+    erased: "그림을 지웠습니다. '하나 되돌리기'로 되돌릴 수 있습니다",
+    deletedStatus: "그림 {p}를 삭제했습니다(그림은 총 {total}장). '하나 되돌리기'로 되돌릴 수 있습니다",
+    layerReady: "레이어 {n}에 그릴 수 있습니다(모든 그림에서 공통)",
+    resetStatus: "전부 초기화했습니다. '하나 되돌리기'로 초기화 전으로 되돌릴 수 있습니다",
+    gifMaking: "GIF를 만드는 중…", gifMade: "컬러 GIF를 만들었습니다(24프레임, 그림 {total}장)",
+    layerUndo: "레이어를 변경하기 전 상태로 되돌렸습니다", layerRedo: "레이어를 변경한 상태로 다시 진행했습니다",
+    eraseUndo: "그림을 지우기 전 상태로 되돌렸습니다", eraseRedo: "그림을 지운 상태로 다시 진행했습니다",
+    deleteUndo: "인비트윈을 삭제하기 전 상태로 되돌렸습니다", deleteRedo: "인비트윈을 삭제한 상태로 다시 진행했습니다",
+    resetUndo: "초기화하기 전 상태로 되돌렸습니다", resetRedo: "초기화한 상태로 다시 진행했습니다",
+    note: "노는 법\n• 처음에는 그림 1이 <b class='hl'>24프레임 전체</b>의 그림입니다. 띠를 탭하거나 빨간 ▼를 밀면 표시되는 프레임이 바뀝니다.\n• <span class='chip'>인비트윈 추가</span>: 고른 프레임 뒤에서 그림이 나뉘어 새 그림이 됩니다.\n• 그림 앞머리의 <b class='hl'>검은 선을 드래그</b>하면 앞뒤 그림의 프레임 수가 바뀝니다. 선을 뛰어넘으면 그림 내용이 서로 바뀝니다. 맨 왼쪽 선을 오른쪽으로 끌면 맨 앞에 빈 그림이 늘어납니다.\n• 도구는 <span class='chip'>펜</span> / <span class='chip'>연필</span>(거친 선) / <span class='chip'>지우개</span>. <span class='chip'>하나 되돌리기</span>로 고칠 수 있습니다.\n• <span class='chip'>레이어 조정</span>: 그림을 겹쳐 그릴 수 있습니다 (<b class='hl'>최대 5장</b>). 레이어 수·색·투명도는 모든 그림 공통입니다.\n• <span class='chip'>인비트윈 삭제</span>: 표시 중인 그림을 지웁니다.\n• <b class='hl'>어니언 스킨</b>: 앞뒤 그림이 비쳐 보입니다.\n• <span class='chip'>재생</span>: 24프레임을 <b class='hl'>초당 24프레임</b>으로 재생.\n• <span class='chip'>GIF로 저장</span>: GIF로 내보냅니다"
+  },
+  zh: {
+    title: "GIF动画作画游戏", titleHtml: "GIF动画<br>作画游戏", bnote: "在浏览器中打开即可保存GIF动画",
+    pen: "笔", pencil: "铅笔", eraser: "橡皮擦", undo: "后退<br>一步", redo: "前进<br>一步",
+    posLabel: "当前显示的帧", slideHint: "(可滑动移动。每秒24帧)", posNum: ":第{n}帧",
+    addInbetween: "添加<br>中间画", deletePic: "删除中间画", layersBtn: "图层<br>调整",
+    onionBtn: "洋葱<br>皮", onionLabel: "洋葱皮",
+    onionPP: "上上张", onionP: "上一张", onionN: "下一张", onionNN: "下下张",
+    gifSave: "保存<br>GIF", play: "播放<br>▶", stop: "停止<br>■", reset: "重新<br>开始",
+    layerTitle: "图层", layerAdd: "添加<br>图层", layerDel: "删除所选<br>图层",
+    layerColor: "更改<br>图层颜色", opacity: "透明度", close: "关闭",
+    layerName: "图层{n}",
+    layerInfo: "图层在所有画面中共通（缩略图是当前画面{p}的）。在所选图层上绘画（共{count}层，上限{max}层）。颜色是线条的颜色，透明度是线条的浓淡。",
+    gifTitle: "GIF动画已完成", gifSaveLink: "保存", gifAlt: "创建的GIF动画",
+    showing: "正在显示第{n}帧（画面{p}，第{a}~{b}帧的格）",
+    addedHead: "已在第0帧处添加新画面1。原画面变为画面{p}（第{a}~{b}帧）",
+    swapped: "黑线越过了相邻的线，画面的内容交换了。当前画面{p}是第{a}~{b}帧",
+    resized: "画面{p1}变为第{a1}~{b1}帧，画面{p2}变为第{a2}~{b2}帧",
+    splitDone: "在第{n}帧之后分割。新画面{p}是第{a}~{b}帧的格（共{total}幅画面）",
+    erased: "已擦除画面。可用“后退一步”恢复",
+    deletedStatus: "已删除画面{p}（共{total}幅）。可用“后退一步”恢复",
+    layerReady: "可以在图层{n}上绘画（所有画面共通）",
+    resetStatus: "已全部重置。可用“后退一步”回到重置前",
+    gifMaking: "正在生成GIF…", gifMade: "已生成彩色GIF（24帧，画面{total}幅）",
+    layerUndo: "已回到更改图层之前的状态", layerRedo: "已前进到更改图层之后的状态",
+    eraseUndo: "已回到擦除画面之前的状态", eraseRedo: "已前进到擦除画面之后的状态",
+    deleteUndo: "已回到删除中间画之前的状态", deleteRedo: "已前进到删除中间画之后的状态",
+    resetUndo: "已回到重置之前的状态", resetRedo: "已前进到重置之后的状态",
+    note: "玩法\n• 一开始，图「1」是<b class='hl'>全部24帧</b>的图。点按色带或滑动红色▼，可以切换显示的帧。\n• <span class='chip'>添加中间画</span>：在所选帧之后把图分开，变成一张新图。\n• 拖动每张图开头的<b class='hl'>黑线</b>，可以改变前后图各占的帧数。越过黑线时，两张图的内容会交换。把最左边的线向右拉，会在最前面增加一张空白图。\n• 工具：<span class='chip'>笔</span> / <span class='chip'>铅笔</span>（粗糙的线）/ <span class='chip'>橡皮擦</span>。可以用<span class='chip'>后退一步</span>重画。\n• <span class='chip'>图层调整</span>：可以叠加图层作画（<b class='hl'>最多5层</b>）。图层的数量、颜色和透明度对所有图通用。\n• <span class='chip'>删除中间画</span>：删掉正在显示的图。\n• <b class='hl'>洋葱皮</b>：前后的图会透出来。\n• <span class='chip'>播放</span>：以<b class='hl'>每秒24帧</b>播放全部24帧。\n• <span class='chip'>保存GIF</span>：导出GIF"
+  },
+  th: {
+    title: "เกมวาด GIF แอนิเมชัน", titleHtml: "GIF แอนิเมชัน<br>เกมวาดภาพ", bnote: "เปิดในเบราว์เซอร์เพื่อบันทึกภาพเคลื่อนไหว GIF ได้",
+    pen: "ปากกา", pencil: "ดินสอ", eraser: "ยางลบ", undo: "ย้อน<br>1 ขั้น", redo: "ทำซ้ำ<br>1 ขั้น",
+    posLabel: "เฟรมที่แสดง", slideHint: "(เลื่อนย้ายได้. 24 เฟรม/วินาที)", posNum: ": เฟรมที่ {n}",
+    addInbetween: "เพิ่ม<br>อินบีทวีน", deletePic: "ลบอินบีทวีน", layersBtn: "ปรับ<br>เลเยอร์",
+    onionBtn: "สกิน<br>หัวหอม", onionLabel: "สกินหัวหอม",
+    onionPP: "ก่อนหน้า 2", onionP: "ก่อนหน้า", onionN: "ถัดไป", onionNN: "ถัดไป 2",
+    gifSave: "บันทึก<br>GIF", play: "เล่น<br>▶", stop: "หยุด<br>■", reset: "เริ่ม<br>ใหม่",
+    layerTitle: "เลเยอร์", layerAdd: "เพิ่ม<br>เลเยอร์", layerDel: "ลบเลเยอร์<br>ที่เลือก",
+    layerColor: "เปลี่ยนสี<br>เลเยอร์", opacity: "ความทึบ", close: "ปิด",
+    layerName: "เลเยอร์ {n}",
+    layerInfo: "เลเยอร์ใช้ร่วมกันในทุกภาพ (ภาพย่อคือของภาพ {p} ปัจจุบัน) วาดบนเลเยอร์ที่เลือกได้ (ทั้งหมด {count} เลเยอร์ สูงสุด {max}) สีคือสีของเส้น ความทึบคือความจางของเส้น",
+    gifTitle: "สร้าง GIF แอนิเมชันเสร็จแล้ว", gifSaveLink: "บันทึก", gifAlt: "GIF แอนิเมชันที่สร้าง",
+    showing: "กำลังแสดงเฟรม {n} (ภาพ {p}, กรอบเฟรม {a}–{b})",
+    addedHead: "เพิ่มภาพ 1 ใหม่ที่เฟรม 0 แล้ว ภาพเดิมกลายเป็นภาพ {p} (เฟรม {a}–{b})",
+    swapped: "เส้นสีดำกระโดดข้ามไป เนื้อหาของภาพจึงสลับกัน ภาพ {p} ปัจจุบันคือเฟรม {a}–{b}",
+    resized: "ภาพ {p1} เป็นเฟรม {a1}–{b1} และภาพ {p2} เป็นเฟรม {a2}–{b2}",
+    splitDone: "แบ่งหลังเฟรม {n} ภาพใหม่ {p} คือกรอบเฟรม {a}–{b} (มีภาพทั้งหมด {total} ภาพ)",
+    erased: "ลบภาพแล้ว ใช้ปุ่มย้อนกลับเพื่อเรียกคืน",
+    deletedStatus: "ลบภาพ {p} แล้ว (เหลือภาพทั้งหมด {total} ภาพ) ใช้ปุ่มย้อนกลับเพื่อเรียกคืน",
+    layerReady: "วาดบนเลเยอร์ {n} ได้ (ใช้ร่วมกันทุกภาพ)",
+    resetStatus: "รีเซ็ตทั้งหมดแล้ว ใช้ปุ่มย้อนกลับเพื่อกลับไปก่อนรีเซ็ต",
+    gifMaking: "กำลังสร้าง GIF…", gifMade: "สร้าง GIF สีแล้ว (24 เฟรม, {total} ภาพ)",
+    layerUndo: "กลับไปก่อนเปลี่ยนเลเยอร์แล้ว", layerRedo: "ไปข้างหน้าถึงหลังเปลี่ยนเลเยอร์แล้ว",
+    eraseUndo: "กลับไปก่อนลบภาพแล้ว", eraseRedo: "ลบภาพอีกครั้งแล้ว",
+    deleteUndo: "กลับไปก่อนลบอินบีทวีนแล้ว", deleteRedo: "ลบอินบีทวีนอีกครั้งแล้ว",
+    resetUndo: "กลับไปก่อนรีเซ็ตแล้ว", resetRedo: "รีเซ็ตอีกครั้งแล้ว",
+    note: "วิธีเล่น\n• เริ่มแรก ภาพ \"1\" คือภาพของ<b class='hl'>ทั้ง 24 เฟรม</b> แตะแถบหรือเลื่อน ▼ สีแดงเพื่อเปลี่ยนเฟรมที่แสดง\n• <span class='chip'>เพิ่มอินบีทวีน</span>: แยกภาพหลังเฟรมที่เลือกให้เป็นภาพใหม่\n• ลาก<b class='hl'>เส้นสีดำ</b>ที่หัวภาพเพื่อเปลี่ยนจำนวนเฟรมของภาพหน้าหลัง ถ้าลากข้ามเส้น เนื้อภาพจะสลับกัน ลากเส้นซ้ายสุดไปทางขวาเพื่อเพิ่มภาพเปล่าที่ด้านหน้า\n• เครื่องมือ: <span class='chip'>ปากกา</span> / <span class='chip'>ดินสอ</span> (เส้นหยาบ) / <span class='chip'>ยางลบ</span> ใช้ <span class='chip'>ย้อนกลับ</span> เพื่อแก้ได้\n• <span class='chip'>ปรับเลเยอร์</span>: วาดซ้อนกันได้<b class='hl'>สูงสุด 5 เลเยอร์</b> จำนวน สี และความโปร่งใสของเลเยอร์ใช้ร่วมกันทุกภาพ\n• <span class='chip'>ลบอินบีทวีน</span>: ลบภาพที่แสดงอยู่\n• <b class='hl'>สกินหัวหอม</b>: มองทะลุเห็นภาพหน้าหลังได้\n• <span class='chip'>เล่น</span>: เล่นทั้ง 24 เฟรมที่ <b class='hl'>24 เฟรมต่อวินาที</b>\n• <span class='chip'>บันทึก GIF</span>: ส่งออกเป็น GIF"
+  },
+  fr: {
+    title: "Jeu de dessin d’animation GIF", titleHtml: "Animation GIF<br>Jeu de dessin", bnote: "Ouvrez dans un navigateur pour enregistrer l’animation GIF",
+    pen: "Stylo", pencil: "Crayon", eraser: "Gomme", undo: "Annuler", redo: "Rétablir",
+    posLabel: "Image affichée", slideHint: "(Glissez pour déplacer. 24 i/s)", posNum: " : image {n}",
+    addInbetween: "Ajouter un<br>intervalle", deletePic: "Supprimer", layersBtn: "Calques",
+    onionBtn: "Pelure<br>d’oignon", onionLabel: "Pelure d’oignon",
+    onionPP: "Préc. 2", onionP: "Préc.", onionN: "Suiv.", onionNN: "Suiv. 2",
+    gifSave: "Enregistrer<br>GIF", play: "Lire<br>▶", stop: "Stop<br>■", reset: "Réinitialiser",
+    layerTitle: "Calques", layerAdd: "Ajouter un<br>calque", layerDel: "Supprimer le<br>calque choisi",
+    layerColor: "Changer la<br>couleur", opacity: "Opacité", close: "Fermer",
+    layerName: "Calque {n}",
+    layerInfo: "Les calques sont communs à toutes les images (les miniatures montrent l’image {p} actuelle). Vous dessinez sur le calque sélectionné ({count} calques, max {max}). La couleur est celle du trait ; l’opacité règle sa légèreté.",
+    gifTitle: "Votre GIF est prêt", gifSaveLink: "Enregistrer", gifAlt: "Votre animation GIF",
+    showing: "Image {n} affichée (dessin {p}, images {a}–{b})",
+    addedHead: "Nouveau dessin 1 ajouté à l’image 0. Le dessin d’origine est maintenant le dessin {p} (images {a}–{b}).",
+    swapped: "La ligne noire a sauté par-dessus, les dessins ont donc échangé leur contenu. Le dessin {p} couvre maintenant les images {a}–{b}.",
+    resized: "Le dessin {p1} couvre les images {a1}–{b1}, et le dessin {p2} les images {a2}–{b2}.",
+    splitDone: "Coupé après l’image {n}. Le nouveau dessin {p} couvre les images {a}–{b} ({total} dessins en tout).",
+    erased: "Dessin effacé. Utilisez Annuler pour le récupérer.",
+    deletedStatus: "Dessin {p} supprimé ({total} dessins restants). Utilisez Annuler pour le récupérer.",
+    layerReady: "Vous pouvez dessiner sur le calque {n} (commun à toutes les images).",
+    resetStatus: "Tout a été réinitialisé. Utilisez Annuler pour revenir en arrière.",
+    gifMaking: "Création du GIF…", gifMade: "GIF en couleur créé (24 images, {total} dessins)",
+    layerUndo: "Retour avant le changement de calques", layerRedo: "Changement de calques réappliqué",
+    eraseUndo: "Retour avant l’effacement du dessin", eraseRedo: "Dessin effacé à nouveau",
+    deleteUndo: "Retour avant la suppression du dessin", deleteRedo: "Dessin supprimé à nouveau",
+    resetUndo: "Retour avant la réinitialisation", resetRedo: "Réinitialisation réappliquée",
+    note: "Comment jouer\n• Au départ, l’image 1 est l’image des <b class='hl'>24 images</b>. Touchez la bande ou glissez le ▼ rouge pour changer l’image affichée.\n• <span class='chip'>Ajouter un intervalle</span> : sépare l’image après l’image choisie pour en créer une nouvelle.\n• Glissez le <b class='hl'>trait noir</b> en tête d’une image pour changer le nombre d’images de chacune. Franchir un trait échange le contenu des images. Glissez le trait tout à gauche vers la droite pour ajouter une image vierge au début.\n• Outils : <span class='chip'>Stylo</span> / <span class='chip'>Crayon</span> (trait gratté) / <span class='chip'>Gomme</span>. <span class='chip'>Annuler</span> corrige les erreurs.\n• <span class='chip'>Calques</span> : superposez des dessins (<b class='hl'>5 max</b>). Nombre, couleur et opacité des calques sont communs à toutes les images.\n• <span class='chip'>Supprimer</span> : efface l’image affichée.\n• <b class='hl'>Pelure d’oignon</b> : les images voisines apparaissent en transparence.\n• <span class='chip'>Lire</span> : lit les 24 images à <b class='hl'>24 i/s</b>.\n• <span class='chip'>Enregistrer GIF</span> : exporte un GIF."
+  },
+  es: {
+    title: "Juego de dibujo de animación GIF", titleHtml: "Animación GIF<br>Juego de dibujo", bnote: "Ábrelo en un navegador para guardar la animación GIF",
+    pen: "Pluma", pencil: "Lápiz", eraser: "Borrador", undo: "Deshacer", redo: "Rehacer",
+    posLabel: "Fotograma mostrado", slideHint: "(Desliza para mover. 24 fps)", posNum: ": fotograma {n}",
+    addInbetween: "Añadir<br>intermedio", deletePic: "Eliminar", layersBtn: "Capas",
+    onionBtn: "Piel de<br>cebolla", onionLabel: "Piel de cebolla",
+    onionPP: "Ant. 2", onionP: "Anterior", onionN: "Siguiente", onionNN: "Sig. 2",
+    gifSave: "Guardar<br>GIF", play: "Reproducir<br>▶", stop: "Detener<br>■", reset: "Reiniciar",
+    layerTitle: "Capas", layerAdd: "Añadir<br>capa", layerDel: "Eliminar la<br>capa elegida",
+    layerColor: "Cambiar el<br>color", opacity: "Opacidad", close: "Cerrar",
+    layerName: "Capa {n}",
+    layerInfo: "Las capas son comunes a todos los dibujos (las miniaturas muestran el dibujo {p} actual). Dibujas en la capa seleccionada ({count} capas, máx. {max}). El color es el color de la línea; la opacidad, su ligereza.",
+    gifTitle: "Tu GIF está listo", gifSaveLink: "Guardar", gifAlt: "Tu animación GIF",
+    showing: "Mostrando el fotograma {n} (dibujo {p}, fotogramas {a}–{b})",
+    addedHead: "Se añadió un nuevo dibujo 1 en el fotograma 0. El dibujo original ahora es el dibujo {p} (fotogramas {a}–{b}).",
+    swapped: "La línea negra saltó por encima, así que los dibujos intercambiaron su contenido. El dibujo {p} ahora cubre los fotogramas {a}–{b}.",
+    resized: "El dibujo {p1} ahora cubre los fotogramas {a1}–{b1}, y el dibujo {p2} los fotogramas {a2}–{b2}.",
+    splitDone: "Dividido después del fotograma {n}. El nuevo dibujo {p} cubre los fotogramas {a}–{b} ({total} dibujos en total).",
+    erased: "Dibujo borrado. Usa Deshacer para recuperarlo.",
+    deletedStatus: "Dibujo {p} eliminado (quedan {total} dibujos). Usa Deshacer para recuperarlo.",
+    layerReady: "Puedes dibujar en la capa {n} (común a todos los dibujos).",
+    resetStatus: "Todo reiniciado. Usa Deshacer para volver atrás.",
+    gifMaking: "Creando el GIF…", gifMade: "GIF en color creado (24 fotogramas, {total} dibujos)",
+    layerUndo: "De vuelta a antes del cambio de capas", layerRedo: "Cambio de capas reaplicado",
+    eraseUndo: "De vuelta a antes de borrar el dibujo", eraseRedo: "Dibujo borrado de nuevo",
+    deleteUndo: "De vuelta a antes de eliminar el dibujo", deleteRedo: "Dibujo eliminado de nuevo",
+    resetUndo: "De vuelta a antes del reinicio", resetRedo: "Reinicio reaplicado",
+    note: "Cómo jugar\n• Al principio, la imagen 1 es la imagen de los <b class='hl'>24 fotogramas</b>. Toca la banda o desliza el ▼ rojo para cambiar el fotograma mostrado.\n• <span class='chip'>Añadir intermedio</span>: separa la imagen después del fotograma elegido y crea una nueva.\n• Arrastra la <b class='hl'>línea negra</b> al inicio de una imagen para cambiar cuántos fotogramas tiene cada una. Al cruzar una línea, el contenido de las imágenes se intercambia. Arrastra la línea de la izquierda hacia la derecha para añadir una imagen en blanco al principio.\n• Herramientas: <span class='chip'>Pluma</span> / <span class='chip'>Lápiz</span> (línea áspera) / <span class='chip'>Borrador</span>. <span class='chip'>Deshacer</span> corrige errores.\n• <span class='chip'>Capas</span>: dibuja en capas superpuestas (<b class='hl'>máx. 5</b>). El número, color y opacidad de las capas son comunes a todas las imágenes.\n• <span class='chip'>Eliminar</span>: borra la imagen mostrada.\n• <b class='hl'>Piel de cebolla</b>: las imágenes vecinas se ven a través.\n• <span class='chip'>Reproducir</span>: reproduce los 24 fotogramas a <b class='hl'>24 fps</b>.\n• <span class='chip'>Guardar GIF</span>: exporta un GIF."
+  },
+  ar: {
+    title: "لعبة رسم رسوم GIF المتحركة", titleHtml: "رسوم GIF متحركة<br>لعبة الرسم", bnote: "افتحه في المتصفح لحفظ رسوم GIF المتحركة",
+    pen: "قلم", pencil: "قلم رصاص", eraser: "ممحاة", undo: "تراجع", redo: "إعادة",
+    posLabel: "الإطار المعروض", slideHint: "(مرّر للتحريك. 24 إطار/ث)", posNum: ": الإطار {n}",
+    addInbetween: "إضافة<br>إطار بيني", deletePic: "حذف الإطار البيني", layersBtn: "الطبقات",
+    onionBtn: "قشر<br>البصل", onionLabel: "قشر البصل",
+    onionPP: "قبل السابق", onionP: "السابق", onionN: "التالي", onionNN: "بعد التالي",
+    gifSave: "حفظ<br>GIF", play: "تشغيل<br>▶", stop: "إيقاف<br>■", reset: "من<br>البداية",
+    layerTitle: "الطبقات", layerAdd: "إضافة<br>طبقة", layerDel: "حذف الطبقة<br>المحددة",
+    layerColor: "تغيير<br>اللون", opacity: "الشفافية", close: "إغلاق",
+    layerName: "الطبقة {n}",
+    layerInfo: "الطبقات مشتركة بين كل الصور (المصغرات تعرض الصورة {p} الحالية). ترسم على الطبقة المحددة ({count} طبقات، بحد أقصى {max}). اللون هو لون الخط، والشفافية هي درجة خفوت الخطوط.",
+    gifTitle: "صار GIF جاهزًا", gifSaveLink: "حفظ", gifAlt: "رسوم GIF المتحركة الخاصة بك",
+    showing: "عرض الإطار {n} (الصورة {p}، الإطارات {a}–{b})",
+    addedHead: "أُضيفت صورة 1 جديدة عند الإطار 0. أصبحت الصورة الأصلية هي الصورة {p} (الإطارات {a}–{b}).",
+    swapped: "قفز الخط الأسود فوق خط آخر، فتبادلت الصور محتواها. الصورة {p} الآن تغطي الإطارات {a}–{b}.",
+    resized: "أصبحت الصورة {p1} تغطي الإطارات {a1}–{b1}، والصورة {p2} تغطي الإطارات {a2}–{b2}.",
+    splitDone: "تم التقسيم بعد الإطار {n}. الصورة الجديدة {p} تغطي الإطارات {a}–{b} ({total} صور في المجموع).",
+    erased: "تم مسح الصورة. استخدم التراجع لاستعادتها.",
+    deletedStatus: "تم حذف الصورة {p} (تبقى {total} صور). استخدم التراجع لاستعادتها.",
+    layerReady: "يمكنك الرسم على الطبقة {n} (مشتركة بين كل الصور).",
+    resetStatus: "تمت إعادة التعيين بالكامل. استخدم التراجع للعودة.",
+    gifMaking: "جارٍ إنشاء GIF…", gifMade: "تم إنشاء GIF ملون (24 إطارًا، {total} صور)",
+    layerUndo: "عدت إلى ما قبل تغيير الطبقات", layerRedo: "أعيد تطبيق تغيير الطبقات",
+    eraseUndo: "عدت إلى ما قبل مسح الصورة", eraseRedo: "تم مسح الصورة مجددًا",
+    deleteUndo: "عدت إلى ما قبل حذف الصورة", deleteRedo: "تم حذف الصورة مجددًا",
+    resetUndo: "عدت إلى ما قبل إعادة التعيين", resetRedo: "أعيد تطبيق إعادة التعيين",
+    note: "طريقة اللعب\n• في البداية، الصورة 1 هي صورة <b class='hl'>كل الإطارات الـ24</b>. انقر الشريط أو مرّر ▼ الأحمر لتغيير الإطار المعروض.\n• <span class='chip'>إضافة إطار بيني</span>: يقسم الصورة بعد الإطار المختار لتصبح صورة جديدة.\n• اسحب <b class='hl'>الخط الأسود</b> في بداية كل صورة لتغيير عدد إطارات كل صورة. عند تجاوز خط تتبادل الصور محتواها. اسحب الخط الأيسر إلى اليمين لإضافة صورة فارغة في البداية.\n• الأدوات: <span class='chip'>قلم</span> / <span class='chip'>قلم رصاص</span> (خط خشن) / <span class='chip'>ممحاة</span>. و<span class='chip'>تراجع</span> لتصحيح الأخطاء.\n• <span class='chip'>الطبقات</span>: ارسم طبقات متراكبة (<b class='hl'>حتى 5</b>). عدد الطبقات ولونها وشفافيتها مشتركة بين كل الصور.\n• <span class='chip'>حذف الإطار البيني</span>: يحذف الصورة المعروضة.\n• <b class='hl'>قشر البصل</b>: تظهر الصور المجاورة شفافة.\n• <span class='chip'>تشغيل</span>: يشغّل الإطارات الـ24 بمعدل <b class='hl'>24 إطار/ث</b>.\n• <span class='chip'>حفظ GIF</span>: يصدّر ملف GIF"
+  }
+
+};
+function T(key){ return STR[lang][key]; }
+function fmt(key, vars){
+  var s = T(key);
+  for (var k in vars) s = s.split("{" + k + "}").join(String(vars[k]));
+  return s;
+}
+
+/* ============ state ============ */
+function makeFrameCanvas(){
+  var c = document.createElement("canvas"); c.width = W; c.height = H;
+  return c;
+}
+/* Layers: the layer STRUCTURE (how many layers, each layer's colour and
+   opacity, and which layer is active) is shared by ALL pictures. Each picture
+   keeps one drawing canvas per layer. */
+var LAYER_COLORS = ["#141210", "#e60012", "#ff8fab", "#2b6de8", "#21a366", "#f28c00", "#8b5cf6"];
+var MAX_LAYERS = 5;
+var layerDefs = [{ color: "#141210", opacity: 100 }];
+var activeLayer = 0;
+function newFrame(){
+  return { layers: layerDefs.map(function(){ return makeFrameCanvas(); }), undo: [], redo: [] };
+}
+var TOTAL = 24;             // frames 1..24
+// A picture spans a block (枠) of consecutive frames, like an exposure sheet.
+// Blocks always partition frames 0..23 in order.
+var blocks = [{ start: 0, end: TOTAL - 1, frame: newFrame() }]; // start: picture "1" spans all 24 frames
+var curPos = 0;
+var tool = "pen";           // "pen" | "pencil" | "eraser"
+var onionOn = false;
+var onionSet = { "-2": false, "-1": true, "1": true, "2": false };
+var playing = false, playTimer = null, playIdx = 0;
+var seqCounter = 0;            // orders stroke-undo vs reset-undo entries
+var resetUndoStack = [];       // states saved by 「最初から」 (full reset)
+var resetRedoStack = [];
+
+function blockIndexAt(pos){
+  for (var i = 0; i < blocks.length; i++){
+    if (pos >= blocks[i].start && pos <= blocks[i].end) return i;
+  }
+  return -1;
+}
+function blockAt(pos){
+  var i = blockIndexAt(pos);
+  return i >= 0 ? blocks[i] : null;
+}
+function curFrame(){
+  var b = blockAt(curPos);
+  return b ? b.frame : null;
+}
+function frameCount(){ return blocks.length; } // number of pictures
+
+var display = document.getElementById("canvas");
+var dctx = display.getContext("2d");
+var timelineEl = document.getElementById("timeline");
+var markerEl = document.getElementById("marker");
+var posNumEl = document.getElementById("posNum");
+var statusEl = document.getElementById("status");
+var btnUndo = document.getElementById("btnUndo");
+var btnRedo = document.getElementById("btnRedo");
+var btnDelPic = document.getElementById("btnDelPic");
+
+function setStatus(t){ statusEl.textContent = t || ""; }
+
+/* ============ drawing ============ */
+var drawing = false, lastPt = null, strokeSnapshot = null;
+
+function frameCtx(f){ return f.layers[activeLayer].getContext("2d"); }
+
+/* a stroke only changes the active layer's canvas of the current picture */
+function snapshot(f){
+  var c = makeFrameCanvas();
+  c.getContext("2d").drawImage(f.layers[activeLayer], 0, 0);
+  return { li: activeLayer, canvas: c };
+}
+function pushUndo(f){
+  f.undo.push({ snap: snapshot(f), seq: ++seqCounter });
+  if (f.undo.length > 50) f.undo.shift();
+  f.redo.length = 0;
+  resetRedoStack.length = 0;
+}
+function restore(f, snap){
+  var target = f.layers[snap.li];
+  if (!target) return; // that layer no longer exists
+  var ctx = target.getContext("2d");
+  ctx.save(); ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, W, H); ctx.drawImage(snap.canvas, 0, 0); ctx.restore();
+}
+
+function canvasPoint(ev){
+  var r = display.getBoundingClientRect();
+  return { x: (ev.clientX - r.left) * W / r.width, y: (ev.clientY - r.top) * H / r.height };
+}
+function drawSegment(a, b){
+  var f = curFrame(); if (!f) return;
+  var ctx = frameCtx(f);
+  ctx.save();
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (tool === "eraser"){
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.strokeStyle = "rgba(0,0,0,1)"; ctx.lineWidth = 26;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  } else if (tool === "pencil"){
+    drawPencilSegment(ctx, a, b);
+  } else {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = "#22201d"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+/* scratchy pencil: many tiny grains with random strength and jitter along the
+   segment, with random gaps. The texture lives in the alpha channel, so the
+   layer colour tinting keeps working exactly like the pen. */
+function drawPencilSegment(ctx, a, b){
+  var dx = b.x - a.x, dy = b.y - a.y;
+  var dist = Math.sqrt(dx * dx + dy * dy);
+  var steps = Math.max(1, Math.ceil(dist / 2));
+  var nx = dist > 0.001 ? -dy / dist : 0;
+  var ny = dist > 0.001 ? dx / dist : 0;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.strokeStyle = "#22201d";
+  // faint core so the stroke still reads as one line
+  ctx.globalAlpha = 0.08;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  for (var i = 0; i <= steps; i++){
+    var t = i / steps;
+    var cx = a.x + dx * t, cy = a.y + dy * t;
+    var grains = 2 + (Math.random() < 0.5 ? 1 : 0);
+    for (var g = 0; g < grains; g++){
+      if (Math.random() < 0.18) continue; // gaps make the かすれ
+      var off = (Math.random() * 2 - 1) * 2.2;
+      var px = cx + nx * off + (Math.random() * 2 - 1) * 0.8;
+      var py = cy + ny * off + (Math.random() * 2 - 1) * 0.8;
+      ctx.globalAlpha = 0.12 + Math.random() * 0.38;
+      ctx.lineWidth = 0.8 + Math.random() * 1.6;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + (dx / steps) * 0.9 + 0.01, py + (dy / steps) * 0.9);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+/* Only the finger (or pen/mouse) that STARTED a stroke may move or end it.
+   Without this, a second touch — a resting finger or palm edge while drawing
+   a circle — hijacks the stroke, and that finger lifting ends the line
+   mid-way even though the drawing finger is still down. */
+var strokePointerId = null;
+display.addEventListener("pointerdown", function(ev){
+  if (drawing) return; // a stroke is already in progress: ignore extra touches
+  if (playing) stopPlay();
+  ev.preventDefault();
+  try { display.setPointerCapture(ev.pointerId); } catch(e){}
+  drawing = true;
+  strokePointerId = ev.pointerId;
+  pushUndo(curFrame());
+  updateUndoBtns();
+  var p = canvasPoint(ev); lastPt = p;
+  drawSegment(p, { x: p.x + 0.01, y: p.y + 0.01 });
+  render();
+});
+display.addEventListener("pointermove", function(ev){
+  if (!drawing || ev.pointerId !== strokePointerId) return;
+  ev.preventDefault();
+  var p = canvasPoint(ev);
+  drawSegment(lastPt, p); lastPt = p;
+  render();
+});
+function endStroke(ev){
+  if (!drawing) return;
+  if (ev && ev.pointerId !== undefined && strokePointerId !== null && ev.pointerId !== strokePointerId) return;
+  drawing = false; lastPt = null; strokePointerId = null;
+  updateUndoBtns(); saveAuto();
+}
+display.addEventListener("pointerup", endStroke);
+display.addEventListener("pointercancel", endStroke);
+
+/* ============ render (with onion skin) ============ */
+var tintCache = {};
+function tinted(srcCanvas, color, alpha){
+  var key = color;
+  if (!tintCache[key]){
+    var c = makeFrameCanvas(); tintCache[key] = c;
+  }
+  var c = tintCache[key], ctx = c.getContext("2d");
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(srcCanvas, 0, 0);
+  ctx.globalCompositeOperation = "source-atop";
+  ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  c._alpha = alpha;
+  return c;
+}
+var ONION_STYLE = {
+  "-2": { color: "#ff9d9d", alpha: 0.28 },
+  "-1": { color: "#e60012", alpha: 0.42 },
+  "1":  { color: "#0aa5a0", alpha: 0.42 },
+  "2":  { color: "#8fd8d4", alpha: 0.28 }
+};
+/* draw all of a picture's layers (bottom to top), each tinted with its colour
+   and drawn at its opacity, into ctx */
+function drawFrameInto(ctx, f){
+  for (var i = 0; i < layerDefs.length; i++){
+    var cnv = f.layers[i];
+    if (!cnv) continue;
+    var def = layerDefs[i];
+    var t = tinted(cnv, def.color, def.opacity / 100);
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = def.opacity / 100;
+    ctx.drawImage(t, 0, 0);
+    ctx.restore();
+  }
+}
+var compCanvas = makeFrameCanvas(); // shared scratch for compositing one picture
+function compositeOf(f){
+  var ctx = compCanvas.getContext("2d");
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, W, H);
+  ctx.restore();
+  drawFrameInto(ctx, f);
+  return compCanvas;
+}
+function render(){
+  dctx.save();
+  dctx.globalCompositeOperation = "source-over"; dctx.globalAlpha = 1;
+  dctx.fillStyle = "#ffffff"; dctx.fillRect(0, 0, W, H);
+  if (onionOn){
+    // onion neighbours are neighbouring PICTURES (blocks), not frames
+    var ci = blockIndexAt(curPos);
+    var order = [-2, 2, -1, 1]; // far pictures first
+    for (var i = 0; i < order.length; i++){
+      var off = order[i];
+      if (!onionSet[String(off)]) continue;
+      var tb = blocks[ci + off];
+      if (!tb) continue;
+      var st = ONION_STYLE[String(off)];
+      var t = tinted(compositeOf(tb.frame), st.color, st.alpha);
+      dctx.globalAlpha = st.alpha;
+      dctx.drawImage(t, 0, 0);
+    }
+    dctx.globalAlpha = 1;
+  }
+  var cf = curFrame();
+  if (cf) drawFrameInto(dctx, cf);
+  dctx.restore();
+  renderTimeline();
+}
+function renderTimeline(){
+  timelineEl.innerHTML = "";
+  // one segment per block （枠）; its width is proportional to the number of frames it spans
+  blocks.forEach(function(b, bi){
+    var d = document.createElement("div");
+    var span = b.end - b.start + 1;
+    d.className = "blk" + (bi % 2 === 1 ? " alt" : "") + (curPos >= b.start && curPos <= b.end ? " cur" : "");
+    d.style.flexGrow = String(span);
+    d.textContent = String(bi + 1);
+    d.addEventListener("click", function(ev){
+      if (playing) stopPlay();
+      // the tapped position inside the block picks the frame
+      var r = d.getBoundingClientRect();
+      var ratio = r.width > 0 ? (ev.clientX - r.left) / r.width : 0;
+      if (ratio < 0) ratio = 0;
+      if (ratio > 0.9999) ratio = 0.9999;
+      curPos = b.start + Math.floor(ratio * span);
+      render(); updateUndoBtns();
+      setStatus(fmt("showing", { n: curPos + 1, p: bi + 1, a: b.start + 1, b: b.end + 1 }));
+    });
+    timelineEl.appendChild(d);
+  });
+  // black drag handles at the head of EVERY block, including picture 1 at frame 0
+  for (var bi = 0; bi < blocks.length; bi++){
+    (function(bi){
+      var h = document.createElement("div");
+      h.className = "bhandle" + (bi === 0 ? " zero" : "");
+      h.style.left = (blocks[bi].start / TOTAL * 100) + "%";
+      h.addEventListener("pointerdown", function(ev){ onHandleDown(ev, bi); });
+      timelineEl.appendChild(h);
+    })(bi);
+  }
+  var pct = ((curPos + 0.5) / TOTAL) * 100;
+  markerEl.style.left = pct + "%";
+  if (posNumEl) posNumEl.textContent = fmt("posNum", { n: curPos + 1 });
+}
+
+/* ============ drag the red ▼ marker to move the displayed frame ============ */
+var markerDrag = null;
+markerEl.addEventListener("pointerdown", function(ev){
+  ev.preventDefault();
+  if (playing) stopPlay();
+  var box = timelineEl.getBoundingClientRect();
+  markerDrag = { boxLeft: box.left, boxWidth: box.width };
+  markerEl.style.transition = "none"; // follow the finger exactly while dragging
+  document.addEventListener("pointermove", onMarkerMove);
+  document.addEventListener("pointerup", onMarkerUp, { once: true });
+});
+function onMarkerMove(ev){
+  if (!markerDrag) return;
+  var f = Math.floor((ev.clientX - markerDrag.boxLeft) / markerDrag.boxWidth * TOTAL);
+  f = Math.min(Math.max(f, 0), TOTAL - 1);
+  if (f === curPos) return;
+  curPos = f;
+  render(); updateUndoBtns();
+  var b = blockAt(curPos);
+  setStatus(fmt("showing", { n: curPos + 1, p: blocks.indexOf(b) + 1, a: b.start + 1, b: b.end + 1 }));
+}
+function onMarkerUp(){
+  document.removeEventListener("pointermove", onMarkerMove);
+  markerDrag = null;
+  markerEl.style.transition = "";
+  saveAuto();
+}
+
+/* ============ drag block boundaries ============ */
+var dragState = null;
+function onHandleDown(ev, bi){
+  ev.preventDefault();
+  if (ev.stopPropagation) ev.stopPropagation();
+  if (playing) stopPlay();
+  var box = timelineEl.getBoundingClientRect();
+  // the dragged line belongs to a picture: the picture (its drawn content) travels with the line.
+  // isZero: the frame-0 line of picture 1 — dragging it away from the left edge adds a new
+  // blank picture at the head (created lazily on the first real move, removed if dragged back).
+  dragState = { block: blocks[bi], startIndex: bi, isZero: bi === 0, addedBlock: null, boxLeft: box.left, boxWidth: box.width };
+  document.addEventListener("pointermove", onHandleMove);
+  document.addEventListener("pointerup", onHandleUp, { once: true });
+}
+function onHandleMove(ev){
+  if (!dragState) return;
+  var D = dragState.block;
+  var cur = D.start;
+  var frame = Math.round((ev.clientX - dragState.boxLeft) / dragState.boxWidth * TOTAL);
+  var want = Math.min(Math.max(frame, dragState.isZero ? 0 : 1), TOTAL - 1);
+  if (dragState.isZero){
+    if (!dragState.addedBlock && want === 0) return; // not moved away from the edge yet
+    if (dragState.addedBlock && want === 0){
+      // dragged all the way back to the left edge: the new picture is cancelled
+      blocks = blocks.filter(function(b){ return b !== dragState.addedBlock; });
+      dragState.addedBlock = null;
+      D.start = 0;
+      var s0 = blocks.slice().sort(function(a, b){ return a.start - b.start; });
+      for (var q = 0; q < s0.length - 1; q++) s0[q].end = s0[q + 1].start - 1;
+      s0[s0.length - 1].end = TOTAL - 1;
+      blocks = s0;
+      render(); updateUndoBtns();
+      return;
+    }
+    if (!dragState.addedBlock){
+      // first real move away from frame 0: a new blank picture appears at the head
+      var nb = { start: 0, end: 0, frame: newFrame() };
+      blocks.push(nb);
+      dragState.addedBlock = nb;
+    }
+  }
+  if (want === cur) return;
+  // other pictures' lines NEVER move. If the pointer lands exactly on a neighbour's
+  // line, the dragged line hops over it (and over any cluster) instead of pushing it;
+  // only at the very edge of the band can a hop fail, and then the line stays for this step.
+  var others = [];
+  for (var k = 1; k < blocks.length; k++){
+    if (blocks[k] !== D) others.push(blocks[k].start);
+  }
+  if (others.indexOf(want) >= 0){
+    var dir = want > cur ? 1 : -1;
+    var w = want;
+    while (others.indexOf(w) >= 0) w += dir;
+    if (w < 1 || w > TOTAL - 1) return; // no room beyond the neighbour at the edge
+    want = w;
+  }
+  // move the dragged picture to its new position in the order: when it crosses a
+  // neighbour's line, the two pictures swap places (their contents trade places)
+  D.start = want;
+  var sorted = blocks.slice().sort(function(a, b){ return a.start - b.start; });
+  for (var n = 0; n < sorted.length - 1; n++) sorted[n].end = sorted[n + 1].start - 1;
+  sorted[sorted.length - 1].end = TOTAL - 1;
+  blocks = sorted;
+  render(); updateUndoBtns();
+}
+function onHandleUp(){
+  document.removeEventListener("pointermove", onHandleMove);
+  if (!dragState) return;
+  var D = dragState.block;
+  var startIndex = dragState.startIndex;
+  var addedBlock = dragState.addedBlock;
+  dragState = null;
+  saveAuto();
+  var idx = blocks.indexOf(D);
+  if (idx < 0) return;
+  if (addedBlock){
+    setStatus(fmt("addedHead", { p: idx + 1, a: D.start + 1, b: D.end + 1 }));
+  } else if (idx !== startIndex){
+    setStatus(fmt("swapped", { p: idx + 1, a: D.start + 1, b: D.end + 1 }));
+  } else if (idx >= 1 && blocks[idx - 1]){
+    setStatus(fmt("resized", { p1: idx, a1: blocks[idx - 1].start + 1, b1: blocks[idx - 1].end + 1, p2: idx + 1, a2: D.start + 1, b2: D.end + 1 }));
+  }
+}
+
+/* ============ tools ============ */
+var toolPen = document.getElementById("toolPen");
+var toolPencil = document.getElementById("toolPencil");
+var toolEraser = document.getElementById("toolEraser");
+function setTool(t){
+  tool = t;
+  toolPen.classList.toggle("active", t === "pen");
+  toolPencil.classList.toggle("active", t === "pencil");
+  toolEraser.classList.toggle("active", t === "eraser");
+}
+toolPen.addEventListener("click", function(){ setTool("pen"); });
+toolPencil.addEventListener("click", function(){ setTool("pencil"); });
+toolEraser.addEventListener("click", function(){ setTool("eraser"); });
+
+function serializeState(){
+  return {
+    blocks: blocks.map(function(b){
+      return {
+        start: b.start, end: b.end,
+        layers: b.frame.layers.map(function(c){ return c.toDataURL("image/png"); })
+      };
+    }),
+    layerDefs: layerDefs.map(function(d){ return { color: d.color, opacity: d.opacity }; }),
+    activeLayer: activeLayer,
+    curPos: curPos
+  };
+}
+function restoreState(state){
+  // shared layer structure first, so newFrame() builds the right number of canvases
+  if (state.layerDefs && state.layerDefs.length){
+    var defs = state.layerDefs.filter(function(d){ return d && typeof d.color === "string"; })
+      .map(function(d){ return { color: d.color, opacity: (typeof d.opacity === "number") ? d.opacity : 100 }; });
+    if (defs.length) layerDefs = defs.slice(0, MAX_LAYERS);
+  }
+  activeLayer = Math.min(Math.max(state.activeLayer || 0, 0), layerDefs.length - 1);
+  var loaded = [];
+  (state.blocks || []).forEach(function(sb){
+    if (typeof sb.start !== "number" || typeof sb.end !== "number") return;
+    if (sb.start < 0 || sb.end >= TOTAL || sb.start > sb.end) return;
+    var f = newFrame();
+    var savedImgs = (sb.layers && sb.layers.length) ? sb.layers.map(function(sl){
+      return (typeof sl === "string") ? sl : (sl && sl.img) ? sl.img : null;
+    }) : (sb.img ? [sb.img] : []);
+    savedImgs.forEach(function(src, li){
+      if (!src || !f.layers[li]) return;
+      var target = f.layers[li];
+      var img = new Image();
+      img.onload = function(){ target.getContext("2d").drawImage(img, 0, 0); render(); };
+      img.src = src;
+    });
+    loaded.push({ start: sb.start, end: sb.end, frame: f });
+  });
+  // validate: blocks must partition 0..TOTAL-1 without gaps
+  var ok = loaded.length > 0 && loaded[0].start === 0 && loaded[loaded.length - 1].end === TOTAL - 1;
+  if (ok){
+    for (var i = 1; i < loaded.length; i++){
+      if (loaded[i].start !== loaded[i - 1].end + 1){ ok = false; break; }
+    }
+  }
+  blocks = ok ? loaded : [{ start: 0, end: TOTAL - 1, frame: newFrame() }];
+  curPos = Math.min(Math.max(state.curPos || 0, 0), TOTAL - 1);
+}
+function updateUndoBtns(){
+  var f = curFrame();
+  btnUndo.disabled = !((f && f.undo.length) || resetUndoStack.length);
+  btnRedo.disabled = !((f && f.redo.length) || resetRedoStack.length);
+}
+btnUndo.addEventListener("click", function(){
+  var f = curFrame();
+  var su = (f && f.undo.length) ? f.undo[f.undo.length - 1] : null;
+  var ru = resetUndoStack.length ? resetUndoStack[resetUndoStack.length - 1] : null;
+  if (!su && !ru) return;
+  if (ru && (!su || ru.seq > su.seq)){
+    resetUndoStack.pop();
+    resetRedoStack.push({ state: serializeState(), seq: ++seqCounter, undoMsg: ru.undoMsg, redoMsg: ru.redoMsg });
+    restoreState(ru.state);
+    setStatus(ru.undoMsg || T("resetUndo"));
+  } else {
+    f.redo.push({ snap: snapshot(f), seq: ++seqCounter });
+    restore(f, f.undo.pop().snap);
+  }
+  updateUndoBtns(); render(); saveAuto();
+});
+btnRedo.addEventListener("click", function(){
+  var f = curFrame();
+  var sr = (f && f.redo.length) ? f.redo[f.redo.length - 1] : null;
+  var rr = resetRedoStack.length ? resetRedoStack[resetRedoStack.length - 1] : null;
+  if (!sr && !rr) return;
+  if (rr && (!sr || rr.seq > sr.seq)){
+    resetRedoStack.pop();
+    resetUndoStack.push({ state: serializeState(), seq: ++seqCounter, undoMsg: rr.undoMsg, redoMsg: rr.redoMsg });
+    restoreState(rr.state);
+    setStatus(rr.redoMsg || T("resetRedo"));
+  } else {
+    f.undo.push({ snap: snapshot(f), seq: ++seqCounter });
+    restore(f, f.redo.pop().snap);
+  }
+  updateUndoBtns(); render(); saveAuto();
+});
+
+/* ============ frames: in-between (split the block after the selected frame) ============ */
+document.getElementById("btnInbetween").addEventListener("click", function(){
+  var bi = blockIndexAt(curPos);
+  var b = blocks[bi];
+  if (!b || curPos >= b.end) return; // selected frame is the last of its block: nothing after it to split off
+  if (playing) stopPlay();
+  resetRedoStack.length = 0;
+  var nb = { start: curPos + 1, end: b.end, frame: newFrame() };
+  b.end = curPos;
+  blocks.splice(bi + 1, 0, nb);
+  curPos = nb.start;
+  updateUndoBtns(); render(); saveAuto();
+  setStatus(fmt("splitDone", { n: nb.start, p: bi + 2, a: nb.start + 1, b: nb.end + 1, total: frameCount() }));
+});
+
+/* delete the current picture; its frames are absorbed by the previous picture
+   (or by the next one when deleting the first picture). Undoable. */
+btnDelPic.addEventListener("click", function(){
+  if (playing) stopPlay();
+  var bi = blockIndexAt(curPos);
+  var b = blocks[bi];
+  if (!b) return;
+  if (blocks.length <= 1){
+    // only one picture: erase its drawing (all layers) instead of deleting it
+    pushStructUndo(T("eraseUndo"), T("eraseRedo"));
+    b.frame.layers.forEach(function(c){
+      var ctx = c.getContext("2d");
+      ctx.save(); ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, W, H); ctx.restore();
+    });
+    updateUndoBtns(); render(); saveAuto();
+    setStatus(T("erased"));
+    return;
+  }
+  pushStructUndo(T("deleteUndo"), T("deleteRedo"));
+  if (bi > 0){ blocks[bi - 1].end = b.end; }
+  else { blocks[1].start = 0; }
+  blocks.splice(bi, 1);
+  updateUndoBtns(); render(); saveAuto();
+  setStatus(fmt("deletedStatus", { p: bi + 1, total: blocks.length }));
+});
+
+/* ============ onion skin ============ */
+var onionStateEl = document.getElementById("onionState");
+var btnOnion = document.getElementById("btnOnion");
+btnOnion.addEventListener("click", function(){
+  if (playing) stopPlay();
+  onionOn = !onionOn;
+  onionStateEl.textContent = onionOn ? "ON" : "OFF";
+  btnOnion.classList.toggle("on", onionOn);
+  render();
+});
+var onionBtns = document.querySelectorAll(".onion-toggle");
+for (var oi = 0; oi < onionBtns.length; oi++){
+  (function(b){
+    b.addEventListener("click", function(){
+      if (playing) stopPlay();
+      var off = b.getAttribute("data-off");
+      onionSet[off] = !onionSet[off];
+      b.classList.toggle("on", onionSet[off]);
+      if (onionSet[off] && !onionOn){
+        onionOn = true; onionStateEl.textContent = "ON"; btnOnion.classList.add("on");
+      }
+      render();
+    });
+  })(onionBtns[oi]);
+}
+
+/* ============ layers ============ */
+var layerOverlayEl = document.getElementById("layerOverlay");
+var layerListEl = document.getElementById("layerList");
+var layerInfoEl = document.getElementById("layerInfo");
+var layerOpacityEl = document.getElementById("layerOpacity");
+var layerOpacityValEl = document.getElementById("layerOpacityVal");
+var btnLayerDel = document.getElementById("btnLayerDel");
+var btnLayerAdd = document.getElementById("btnLayerAdd");
+
+function renderLayerPanel(){
+  var f = curFrame(); if (!f) return;
+  layerListEl.innerHTML = "";
+  // top layer first, like the sketch; thumbnails show the CURRENT picture's layer
+  for (var i = layerDefs.length - 1; i >= 0; i--){
+    (function(i){
+      var def = layerDefs[i];
+      var row = document.createElement("div");
+      row.className = "lrow" + (i === activeLayer ? " sel" : "");
+      var th = document.createElement("canvas");
+      th.className = "lthumb"; th.width = 108; th.height = 96;
+      var tctx = th.getContext("2d");
+      tctx.fillStyle = "#ffffff"; tctx.fillRect(0, 0, 108, 96);
+      if (f.layers[i]){
+        var t = tinted(f.layers[i], def.color, def.opacity / 100);
+        tctx.save();
+        tctx.globalAlpha = def.opacity / 100;
+        tctx.drawImage(t, 0, 0, 108, 96);
+        tctx.restore();
+      }
+      var nm = document.createElement("span");
+      nm.className = "lname"; nm.textContent = fmt("layerName", { n: i + 1 });
+      var dot = document.createElement("span");
+      dot.className = "ldot"; dot.style.background = def.color;
+      row.appendChild(th); row.appendChild(nm); row.appendChild(dot);
+      row.addEventListener("click", function(){
+        activeLayer = i;
+        renderLayerPanel(); render();
+      });
+      layerListEl.appendChild(row);
+    })(i);
+  }
+  var act = layerDefs[activeLayer];
+  layerOpacityEl.value = String(act.opacity);
+  layerOpacityValEl.textContent = String(act.opacity);
+  btnLayerDel.disabled = layerDefs.length <= 1;
+  btnLayerAdd.disabled = layerDefs.length >= MAX_LAYERS;
+  markPaletteSel();
+  layerInfoEl.textContent = fmt("layerInfo", { p: blockIndexAt(curPos) + 1, count: layerDefs.length, max: MAX_LAYERS });
+}
+/* layer add/delete change every picture at once: keep them undoable via the
+   whole-state stack (same mechanism as 「最初から」) */
+function pushStructUndo(undoMsg, redoMsg){
+  resetUndoStack.push({ state: serializeState(), seq: ++seqCounter, undoMsg: undoMsg || T("layerUndo"), redoMsg: redoMsg || T("layerRedo") });
+  if (resetUndoStack.length > 20) resetUndoStack.shift();
+  resetRedoStack.length = 0;
+}
+document.getElementById("btnLayer").addEventListener("click", function(){
+  if (playing) stopPlay();
+  renderLayerPanel();
+  layerOverlayEl.classList.add("show");
+});
+document.getElementById("btnLayerClose").addEventListener("click", function(){
+  layerOverlayEl.classList.remove("show");
+  setStatus(fmt("layerReady", { n: activeLayer + 1 }));
+  render(); saveAuto();
+});
+btnLayerAdd.addEventListener("click", function(){
+  if (layerDefs.length >= MAX_LAYERS) return;
+  pushStructUndo();
+  layerDefs.push({ color: "#141210", opacity: 100 }); // new layers always start black
+  blocks.forEach(function(b){ b.frame.layers.push(makeFrameCanvas()); });
+  activeLayer = layerDefs.length - 1;
+  updateUndoBtns(); renderLayerPanel(); render(); saveAuto();
+});
+btnLayerDel.addEventListener("click", function(){
+  if (layerDefs.length <= 1) return;
+  pushStructUndo();
+  layerDefs.splice(activeLayer, 1);
+  blocks.forEach(function(b){ b.frame.layers.splice(activeLayer, 1); });
+  if (activeLayer >= layerDefs.length) activeLayer = layerDefs.length - 1;
+  updateUndoBtns(); renderLayerPanel(); render(); saveAuto();
+});
+/* colour palette: 「レイヤーの色を変更」 opens it; tapping a swatch applies */
+var layerPaletteEl = document.getElementById("layerPalette");
+function markPaletteSel(){
+  for (var i = 0; i < layerPaletteEl.children.length; i++){
+    var ch = layerPaletteEl.children[i];
+    ch.classList.toggle("sel", ch.getAttribute("data-color") === layerDefs[activeLayer].color);
+  }
+}
+LAYER_COLORS.forEach(function(c){
+  var b = document.createElement("button");
+  b.className = "swatch";
+  b.style.background = c;
+  b.setAttribute("data-color", c);
+  b.addEventListener("click", function(){
+    layerDefs[activeLayer].color = c;
+    layerPaletteEl.classList.remove("show");
+    renderLayerPanel(); render(); saveAuto();
+  });
+  layerPaletteEl.appendChild(b);
+});
+document.getElementById("btnLayerColor").addEventListener("click", function(){
+  layerPaletteEl.classList.toggle("show");
+  markPaletteSel();
+});
+layerOpacityEl.addEventListener("input", function(){
+  layerDefs[activeLayer].opacity = Number(layerOpacityEl.value);
+  layerOpacityValEl.textContent = layerOpacityEl.value;
+  render();
+});
+layerOpacityEl.addEventListener("change", function(){
+  renderLayerPanel(); saveAuto();
+});
+
+/* ============ playback ============ */
+var btnPlay = document.getElementById("btnPlay");
+function startPlay(){
+  // onion skin is OFF while the animation is playing
+  if (onionOn){
+    onionOn = false;
+    onionStateEl.textContent = "OFF";
+    btnOnion.classList.remove("on");
+  }
+  playing = true;
+  playIdx = curPos;
+  setPlayLabel(); btnPlay.classList.add("playing");
+  playTimer = setInterval(function(){
+    curPos = playIdx;
+    render(); updateUndoBtns();
+    playIdx = (playIdx + 1) % TOTAL; // step through all 24 frames
+  }, Math.round(1000 / FPS));
+}
+function stopPlay(){
+  playing = false;
+  if (playTimer) clearInterval(playTimer);
+  playTimer = null;
+  setPlayLabel(); btnPlay.classList.remove("playing");
+}
+btnPlay.addEventListener("click", function(){ playing ? stopPlay() : startPlay(); });
+document.getElementById("btnFirst").addEventListener("click", function(){
+  // 「最初から」 = full reset of everything; undoable with 「1つもどる」
+  if (playing) stopPlay();
+  resetUndoStack.push({ state: serializeState(), seq: ++seqCounter, undoMsg: T("resetUndo"), redoMsg: T("resetRedo") });
+  if (resetUndoStack.length > 20) resetUndoStack.shift();
+  resetRedoStack.length = 0;
+  layerDefs = [{ color: "#141210", opacity: 100 }];
+  activeLayer = 0;
+  blocks = [{ start: 0, end: TOTAL - 1, frame: newFrame() }];
+  curPos = 0; playIdx = 0;
+  onionOn = false;
+  onionStateEl.textContent = "OFF";
+  btnOnion.classList.remove("on");
+  render(); updateUndoBtns(); saveAuto();
+  setStatus(T("resetStatus"));
+});
+
+/* ============ autosave ============ */
+var SAVE_KEY = "gifAnimGame.v33";
+var saveTimer = null;
+function saveAuto(){
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()));
+    } catch(e){}
+  }, 300);
+}
+function loadAuto(){
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    var data = JSON.parse(raw);
+    if (!data || !data.blocks || !data.blocks.length) return false;
+    restoreState(data);
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ============ GIF encoder (pure JS, colour palette) ============ */
+// === GIFENC START ===
+function lzwEncode(indices, minCodeSize){
+  var out = [];
+  var clearCode = 1 << minCodeSize;
+  var eoiCode = clearCode + 1;
+  var codeSize = minCodeSize + 1;
+  var dict = new Map();
+  function resetDict(){
+    dict.clear();
+    for (var i = 0; i < clearCode; i++) dict.set(String.fromCharCode(i), i);
+  }
+  resetDict();
+  var nextCode = eoiCode + 1;
+  var bitBuffer = 0, bitCount = 0;
+  function emit(code){
+    bitBuffer |= code << bitCount;
+    bitCount += codeSize;
+    while (bitCount >= 8){
+      out.push(bitBuffer & 0xff);
+      bitBuffer >>= 8; bitCount -= 8;
+    }
+  }
+  emit(clearCode);
+  var prefix = String.fromCharCode(indices[0]);
+  for (var i = 1; i < indices.length; i++){
+    var ch = String.fromCharCode(indices[i]);
+    var combined = prefix + ch;
+    if (dict.has(combined)){
+      prefix = combined;
+    } else {
+      emit(dict.get(prefix));
+      if (nextCode < 4096){
+        dict.set(combined, nextCode++);
+        if (nextCode - 1 >= (1 << codeSize) && codeSize < 12) codeSize++;
+      } else {
+        emit(clearCode);
+        resetDict(); nextCode = eoiCode + 1; codeSize = minCodeSize + 1;
+      }
+      prefix = ch;
+    }
+  }
+  emit(dict.get(prefix));
+  emit(eoiCode);
+  if (bitCount > 0) out.push(bitBuffer & 0xff);
+  return out;
+}
+function buildGIF(width, height, framesIndices, delayCs, palette){
+  var bytes = [];
+  function pushStr(s){ for (var i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i) & 0xff); }
+  function push16(v){ bytes.push(v & 0xff, (v >> 8) & 0xff); }
+  pushStr("GIF89a");
+  push16(width); push16(height);
+  bytes.push(0xf7, 0, 0); // GCT present, 256 colors
+  for (var i = 0; i < 256; i++){
+    var c = (palette && palette[i]) || [i, i, i];
+    bytes.push(c[0], c[1], c[2]);
+  }
+  // loop extension
+  bytes.push(0x21, 0xff, 11); pushStr("NETSCAPE2.0");
+  bytes.push(3, 1, 0, 0, 0); // sub-block: len3, subid1, loop count=0 (infinite), terminator
+  for (var f = 0; f < framesIndices.length; f++){
+    // GCE (delayCs may be a single value or one delay per frame)
+    bytes.push(0x21, 0xf9, 4, 0);
+    push16(Array.isArray(delayCs) ? delayCs[f] : delayCs);
+    bytes.push(0, 0);
+    // image descriptor
+    bytes.push(0x2c); push16(0); push16(0); push16(width); push16(height);
+    bytes.push(0);
+    var minCode = 8;
+    bytes.push(minCode);
+    var data = lzwEncode(framesIndices[f], minCode);
+    for (var j = 0; j < data.length; j += 255){
+      var chunk = data.slice(j, j + 255);
+      bytes.push(chunk.length);
+      for (var k = 0; k < chunk.length; k++) bytes.push(chunk[k]);
+    }
+    bytes.push(0);
+  }
+  bytes.push(0x3b);
+  return new Uint8Array(bytes);
+}
+function frameToRGB(srcCanvas, gw, gh){
+  var c = document.createElement("canvas"); c.width = gw; c.height = gh;
+  var ctx = c.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, gw, gh);
+  ctx.drawImage(srcCanvas, 0, 0, gw, gh);
+  return ctx.getImageData(0, 0, gw, gh).data;
+}
+/* build a shared 256-colour palette for all frames by median-cut quantisation
+   over sampled pixels, so layer colours survive the export */
+function buildPalette(frameDataList){
+  var samples = [];
+  for (var fi = 0; fi < frameDataList.length; fi++){
+    var d = frameDataList[fi];
+    for (var p = 0; p < d.length; p += 32){ // every 8th pixel
+      samples.push([d[p], d[p + 1], d[p + 2]]);
+    }
+  }
+  var boxes = [samples];
+  while (boxes.length < 256){
+    var bi = -1, bch = 0, brange = 0;
+    for (var i = 0; i < boxes.length; i++){
+      var box = boxes[i];
+      if (box.length < 2) continue;
+      var mn = [255, 255, 255], mx = [0, 0, 0];
+      for (var j = 0; j < box.length; j++){
+        for (var ch = 0; ch < 3; ch++){
+          if (box[j][ch] < mn[ch]) mn[ch] = box[j][ch];
+          if (box[j][ch] > mx[ch]) mx[ch] = box[j][ch];
+        }
+      }
+      for (var c2 = 0; c2 < 3; c2++){
+        if (mx[c2] - mn[c2] > brange){ brange = mx[c2] - mn[c2]; bi = i; bch = c2; }
+      }
+    }
+    if (bi < 0 || brange === 0) break;
+    var b = boxes.splice(bi, 1)[0];
+    b.sort(function(a, bb){ return a[bch] - bb[bch]; });
+    var mid = b.length >> 1;
+    boxes.push(b.slice(0, mid));
+    boxes.push(b.slice(mid));
+  }
+  var pal = boxes.map(function(box){
+    var r = 0, g = 0, bl = 0;
+    for (var j = 0; j < box.length; j++){ r += box[j][0]; g += box[j][1]; bl += box[j][2]; }
+    var n = Math.max(box.length, 1);
+    return [Math.round(r / n), Math.round(g / n), Math.round(bl / n)];
+  });
+  while (pal.length < 256) pal.push([255, 255, 255]);
+  return pal;
+}
+function indicesFromRGB(d, pal){
+  var idx = new Uint8Array(d.length / 4);
+  var cache = new Map();
+  for (var i = 0, p = 0; i < idx.length; i++, p += 4){
+    var key = (d[p] << 16) | (d[p + 1] << 8) | d[p + 2];
+    var v = cache.get(key);
+    if (v === undefined){
+      v = 0;
+      var best = Infinity;
+      for (var j = 0; j < 256; j++){
+        var dr = d[p] - pal[j][0], dg = d[p + 1] - pal[j][1], db = d[p + 2] - pal[j][2];
+        var dist = dr * dr + dg * dg + db * db;
+        if (dist < best){ best = dist; v = j; if (dist === 0) break; }
+      }
+      cache.set(key, v);
+    }
+    idx[i] = v;
+  }
+  return idx;
+}
+// === GIFENC END ===
+
+var gifUrl = null;
+document.getElementById("btnGif").addEventListener("click", function(){
+  if (playing) stopPlay();
+  setStatus(T("gifMaking"));
+  setTimeout(function(){
+    var gw = 480, gh = Math.round(H * gw / W);
+    // export all 24 frames in colour; each frame shows its block's picture
+    var frameData = [];
+    for (var f = 0; f < TOTAL; f++) frameData.push(frameToRGB(compositeOf(blockAt(f).frame), gw, gh));
+    var palette = buildPalette(frameData);
+    var all = frameData.map(function(d){ return indicesFromRGB(d, palette); });
+    // 24fps: GIF delays are whole centiseconds, so mix 4cs and 5cs frames
+    // (20 frames x 4cs + 4 frames x 5cs = 100cs per 24 frames = exactly 24fps)
+    var delays = [];
+    for (var di = 0; di < TOTAL; di++) delays.push(di % 6 === 5 ? 5 : 4);
+    var data = buildGIF(gw, gh, all, delays, palette);
+    var blob = new Blob([data], { type: "image/gif" });
+    if (gifUrl) URL.revokeObjectURL(gifUrl);
+    gifUrl = URL.createObjectURL(blob);
+    document.getElementById("gifImg").src = gifUrl;
+    document.getElementById("gifDownload").href = gifUrl;
+    document.getElementById("gifOverlay").classList.add("show");
+    setStatus(fmt("gifMade", { total: frameCount() }));
+  }, 30);
+});
+document.getElementById("gifClose").addEventListener("click", function(){
+  document.getElementById("gifOverlay").classList.remove("show");
+});
+
+/* ============ language switching ============ */
+function setPlayLabel(){ btnPlay.innerHTML = playing ? T("stop") : T("play"); }
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.title = T("title");
+  document.getElementById("titleMain").innerHTML = T("titleHtml");
+  document.getElementById("bnote").textContent = T("bnote");
+  for (var li = 0; li < langBtns.length; li++) langBtns[li].classList.toggle("active", langBtns[li].dataset.lang === lang);
+  toolPen.textContent = T("pen");
+  toolPencil.textContent = T("pencil");
+  toolEraser.textContent = T("eraser");
+  btnUndo.innerHTML = T("undo");
+  btnRedo.innerHTML = T("redo");
+  document.getElementById("posLabel").textContent = T("posLabel");
+  document.getElementById("slideHint").textContent = T("slideHint");
+  document.getElementById("btnInbetween").innerHTML = T("addInbetween");
+  btnDelPic.textContent = T("deletePic");
+  document.getElementById("btnLayer").innerHTML = T("layersBtn");
+  document.getElementById("onionBtnLabel").innerHTML = T("onionBtn");
+  document.getElementById("onionLabel").textContent = T("onionLabel");
+  var onionKeys = ["onionPP", "onionP", "onionN", "onionNN"];
+  for (var oi = 0; oi < onionBtns.length && oi < 4; oi++) onionBtns[oi].textContent = T(onionKeys[oi]);
+  document.getElementById("btnGif").innerHTML = T("gifSave");
+  setPlayLabel();
+  document.getElementById("btnFirst").innerHTML = T("reset");
+  document.getElementById("noteText").innerHTML = T("note");
+  document.getElementById("layerTitle").textContent = T("layerTitle");
+  btnLayerAdd.innerHTML = T("layerAdd");
+  btnLayerDel.innerHTML = T("layerDel");
+  document.getElementById("btnLayerColor").innerHTML = T("layerColor");
+  document.getElementById("opacityLabel").textContent = T("opacity");
+  document.getElementById("btnLayerClose").textContent = T("close");
+  document.getElementById("gifTitle").textContent = T("gifTitle");
+  document.getElementById("gifDownload").textContent = T("gifSaveLink");
+  document.getElementById("gifImg").alt = T("gifAlt");
+  renderLayerPanel();
+}
+function setLang(l){
+  lang = l;
+  try { localStorage.setItem(LANG_KEY, l); } catch(e){}
+  applyLang();
+  render();
+  var cb = blockAt(curPos);
+  if (cb) setStatus(fmt("showing", { n: curPos + 1, p: blocks.indexOf(cb) + 1, a: cb.start + 1, b: cb.end + 1 }));
+}
+var langBtns = document.querySelectorAll(".langbtn");
+for (var lbi = 0; lbi < langBtns.length; lbi++){
+  (function(btn){ btn.addEventListener("click", function(){ setLang(btn.dataset.lang); }); })(langBtns[lbi]);
+}
+
+/* ============ init ============ */
+loadAuto();
+applyLang();
+updateUndoBtns();
+render();
+</script>
+</body>
+</html>
