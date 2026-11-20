@@ -24,6 +24,8 @@
   .langbtn{font:inherit;font-size:14px;font-weight:700;min-width:42px;padding:10px 11px;border:2px solid #f2c894;border-radius:999px;background:#fff;color:#5b4326;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06)}
   .langbtn.active{background:#f79c1d;border-color:#e07f00;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18)}
   #bnote{font-size:14px;font-weight:700;color:#e60012;margin:0 0 8px}
+  #credit{text-align:center;font-size:12px;color:#8a3a44;line-height:1.7;margin-top:160px;padding-bottom:64px}
+  #credit a{color:inherit;font-weight:700}
   #timelineBox, #stage{direction:ltr}
   @media (max-width:560px){
     .langrow{gap:4px}
@@ -200,6 +202,7 @@
     #status{color:#f0b7c1}
     .note{color:#d8a7b2}
     .note .hl{color:#ff8fa0}
+    #credit{color:#d8a7b2}
     #slideHint{color:#d8a7b2}
     #bnote{color:#ff8fa0}
     #gifCard,#layerCard{background:#3a2931;color:#f7ecef;border-color:#120d10}
@@ -305,6 +308,7 @@
     <button class="btn" id="btnLayerClose">閉じる</button>
   </div>
 </div>
+<footer id="credit">© 2026 ふっふ (Fuffu)<br>お問い合わせ: <a href="https://x.com/dokka_garapa" target="_blank" rel="noopener">X @dokka_garapa</a></footer>
 
 <!-- GIFプレビュー（浮き表示） -->
 <div id="gifOverlay">
@@ -330,7 +334,7 @@ var lang = "ja";
 try { var savedLang = localStorage.getItem(LANG_KEY); if (LANGS.indexOf(savedLang) >= 0) lang = savedLang; } catch(e){}
 var STR = {
   ja: {
-    title: "GIFアニメ作画ゲーム", titleHtml: "GIFアニメ<br>作画ゲーム", bnote: "ブラウザで開くとGIFアニメ保存できます",
+    title: "GIFアニメ作画ゲーム", titleHtml: "GIFアニメ<br>作画ゲーム", creditBy: "ふっふ (Fuffu)", creditLabel: "お問い合わせ:", bnote: "ブラウザで開くとGIFアニメ保存できます",
     pen: "ペン", pencil: "鉛筆", eraser: "消しゴム", undo: "1つ<br>もどる", redo: "1つ<br>すすむ",
     posLabel: "表示しているフレーム", slideHint: "(スライド移動できます。1秒24コマ)", posNum: ":{n}コマ目",
     addInbetween: "中割を<br>追加", deletePic: "中割りを削除", layersBtn: "レイヤー<br>調整",
@@ -359,7 +363,7 @@ var STR = {
     note: "遊び方\n・最初は絵「1」が<b class='hl'>24コマ全部</b>の絵です。帯をタップするか、赤い▼をスライドすると表示するコマが移ります\n・<span class='chip'>中割を追加</span>：選んだコマの後ろで絵が分かれ、新しい絵になります\n・絵の先頭の<b class='hl'>黒い線をドラッグ</b>すると、前後の絵のコマ数が変わります。線を飛び越すと絵の中身が交代します。一番左の線を右へ引くと、先頭に白紙の絵が増えます\n・道具は<span class='chip'>ペン</span>／<span class='chip'>鉛筆</span>（かすれた線）／<span class='chip'>消しゴム</span>。<span class='chip'>1つもどる</span>で描き直せます\n・<span class='chip'>レイヤー調整</span>：絵を重ねて描けます（<b class='hl'>最大5枚</b>）。レイヤーの数・色・透明度は全ての絵で共通です\n・<span class='chip'>中割りを削除</span>：表示中の絵を消します\n・<b class='hl'>オニオンスキン</b>：前後の絵が透けて見えます\n・<span class='chip'>再生</span>：24コマを<b class='hl'>1秒24コマ</b>で再生。\n・<span class='chip'>GIFで保存</span>：GIFに書き出します"
   },
   en: {
-    title: "GIF Animation Drawing Game", titleHtml: "GIF Animation<br>Drawing Game", bnote: "Open in a browser to save the GIF animation",
+    title: "GIF Animation Drawing Game", titleHtml: "GIF Animation<br>Drawing Game", creditBy: "Fuffu", creditLabel: "Contact:", bnote: "Open in a browser to save the GIF animation",
     pen: "Pen", pencil: "Pencil", eraser: "Eraser", undo: "Undo", redo: "Redo",
     posLabel: "Frame shown", slideHint: "(Slide to move. 24 fps)", posNum: ": frame {n}",
     addInbetween: "Add<br>in-between", deletePic: "Delete", layersBtn: "Layers",
@@ -388,7 +392,7 @@ var STR = {
     note: "How to play\n• Picture 1 starts as the picture for <b class='hl'>all 24 frames</b>. Tap the band or slide the red ▼ to change the frame shown.\n• <span class='chip'>Add in-between</span>: splits the picture after the selected frame into a new picture.\n• Drag the <b class='hl'>black line</b> at a picture's head to change how many frames each picture gets. Crossing a line swaps the pictures' contents. Drag the far-left line right to add a blank picture at the start.\n• Tools: <span class='chip'>Pen</span> / <span class='chip'>Pencil</span> (scratchy line) / <span class='chip'>Eraser</span>. <span class='chip'>Undo</span> fixes mistakes.\n• <span class='chip'>Layers</span>: stack drawings (<b class='hl'>up to 5</b>). Layer count, colour and opacity are shared by all pictures.\n• <span class='chip'>Delete</span>: removes the shown picture.\n• <b class='hl'>Onion skin</b>: neighbouring pictures show through.\n• <span class='chip'>Play</span>: plays all 24 frames at <b class='hl'>24 fps</b>.\n• <span class='chip'>Save GIF</span>: exports a GIF."
   },
   ko: {
-    title: "GIF 애니메이션 작화 게임", titleHtml: "GIF 애니메이션<br>작화 게임", bnote: "브라우저에서 열면 GIF 애니메이션을 저장할 수 있습니다",
+    title: "GIF 애니메이션 작화 게임", titleHtml: "GIF 애니메이션<br>작화 게임", creditBy: "Fuffu", creditLabel: "문의:", bnote: "브라우저에서 열면 GIF 애니메이션을 저장할 수 있습니다",
     pen: "펜", pencil: "연필", eraser: "지우개", undo: "하나<br>되돌리기", redo: "하나<br>다시하기",
     posLabel: "표시 중인 프레임", slideHint: "(슬라이드 이동 가능. 1초 24프레임)", posNum: ":{n}프레임",
     addInbetween: "인비트윈<br>추가", deletePic: "인비트윈 삭제", layersBtn: "레이어<br>조정",
@@ -417,7 +421,7 @@ var STR = {
     note: "노는 법\n• 처음에는 그림 1이 <b class='hl'>24프레임 전체</b>의 그림입니다. 띠를 탭하거나 빨간 ▼를 밀면 표시되는 프레임이 바뀝니다.\n• <span class='chip'>인비트윈 추가</span>: 고른 프레임 뒤에서 그림이 나뉘어 새 그림이 됩니다.\n• 그림 앞머리의 <b class='hl'>검은 선을 드래그</b>하면 앞뒤 그림의 프레임 수가 바뀝니다. 선을 뛰어넘으면 그림 내용이 서로 바뀝니다. 맨 왼쪽 선을 오른쪽으로 끌면 맨 앞에 빈 그림이 늘어납니다.\n• 도구는 <span class='chip'>펜</span> / <span class='chip'>연필</span>(거친 선) / <span class='chip'>지우개</span>. <span class='chip'>하나 되돌리기</span>로 고칠 수 있습니다.\n• <span class='chip'>레이어 조정</span>: 그림을 겹쳐 그릴 수 있습니다 (<b class='hl'>최대 5장</b>). 레이어 수·색·투명도는 모든 그림 공통입니다.\n• <span class='chip'>인비트윈 삭제</span>: 표시 중인 그림을 지웁니다.\n• <b class='hl'>어니언 스킨</b>: 앞뒤 그림이 비쳐 보입니다.\n• <span class='chip'>재생</span>: 24프레임을 <b class='hl'>초당 24프레임</b>으로 재생.\n• <span class='chip'>GIF로 저장</span>: GIF로 내보냅니다"
   },
   zh: {
-    title: "GIF动画作画游戏", titleHtml: "GIF动画<br>作画游戏", bnote: "在浏览器中打开即可保存GIF动画",
+    title: "GIF动画作画游戏", titleHtml: "GIF动画<br>作画游戏", creditBy: "Fuffu", creditLabel: "联系方式：", bnote: "在浏览器中打开即可保存GIF动画",
     pen: "笔", pencil: "铅笔", eraser: "橡皮擦", undo: "后退<br>一步", redo: "前进<br>一步",
     posLabel: "当前显示的帧", slideHint: "(可滑动移动。每秒24帧)", posNum: ":第{n}帧",
     addInbetween: "添加<br>中间画", deletePic: "删除中间画", layersBtn: "图层<br>调整",
@@ -446,7 +450,7 @@ var STR = {
     note: "玩法\n• 一开始，图「1」是<b class='hl'>全部24帧</b>的图。点按色带或滑动红色▼，可以切换显示的帧。\n• <span class='chip'>添加中间画</span>：在所选帧之后把图分开，变成一张新图。\n• 拖动每张图开头的<b class='hl'>黑线</b>，可以改变前后图各占的帧数。越过黑线时，两张图的内容会交换。把最左边的线向右拉，会在最前面增加一张空白图。\n• 工具：<span class='chip'>笔</span> / <span class='chip'>铅笔</span>（粗糙的线）/ <span class='chip'>橡皮擦</span>。可以用<span class='chip'>后退一步</span>重画。\n• <span class='chip'>图层调整</span>：可以叠加图层作画（<b class='hl'>最多5层</b>）。图层的数量、颜色和透明度对所有图通用。\n• <span class='chip'>删除中间画</span>：删掉正在显示的图。\n• <b class='hl'>洋葱皮</b>：前后的图会透出来。\n• <span class='chip'>播放</span>：以<b class='hl'>每秒24帧</b>播放全部24帧。\n• <span class='chip'>保存GIF</span>：导出GIF"
   },
   th: {
-    title: "เกมวาด GIF แอนิเมชัน", titleHtml: "GIF แอนิเมชัน<br>เกมวาดภาพ", bnote: "เปิดในเบราว์เซอร์เพื่อบันทึกภาพเคลื่อนไหว GIF ได้",
+    title: "เกมวาด GIF แอนิเมชัน", titleHtml: "GIF แอนิเมชัน<br>เกมวาดภาพ", creditBy: "Fuffu", creditLabel: "ติดต่อ:", bnote: "เปิดในเบราว์เซอร์เพื่อบันทึกภาพเคลื่อนไหว GIF ได้",
     pen: "ปากกา", pencil: "ดินสอ", eraser: "ยางลบ", undo: "ย้อน<br>1 ขั้น", redo: "ทำซ้ำ<br>1 ขั้น",
     posLabel: "เฟรมที่แสดง", slideHint: "(เลื่อนย้ายได้. 24 เฟรม/วินาที)", posNum: ": เฟรมที่ {n}",
     addInbetween: "เพิ่ม<br>อินบีทวีน", deletePic: "ลบอินบีทวีน", layersBtn: "ปรับ<br>เลเยอร์",
@@ -475,7 +479,7 @@ var STR = {
     note: "วิธีเล่น\n• เริ่มแรก ภาพ \"1\" คือภาพของ<b class='hl'>ทั้ง 24 เฟรม</b> แตะแถบหรือเลื่อน ▼ สีแดงเพื่อเปลี่ยนเฟรมที่แสดง\n• <span class='chip'>เพิ่มอินบีทวีน</span>: แยกภาพหลังเฟรมที่เลือกให้เป็นภาพใหม่\n• ลาก<b class='hl'>เส้นสีดำ</b>ที่หัวภาพเพื่อเปลี่ยนจำนวนเฟรมของภาพหน้าหลัง ถ้าลากข้ามเส้น เนื้อภาพจะสลับกัน ลากเส้นซ้ายสุดไปทางขวาเพื่อเพิ่มภาพเปล่าที่ด้านหน้า\n• เครื่องมือ: <span class='chip'>ปากกา</span> / <span class='chip'>ดินสอ</span> (เส้นหยาบ) / <span class='chip'>ยางลบ</span> ใช้ <span class='chip'>ย้อนกลับ</span> เพื่อแก้ได้\n• <span class='chip'>ปรับเลเยอร์</span>: วาดซ้อนกันได้<b class='hl'>สูงสุด 5 เลเยอร์</b> จำนวน สี และความโปร่งใสของเลเยอร์ใช้ร่วมกันทุกภาพ\n• <span class='chip'>ลบอินบีทวีน</span>: ลบภาพที่แสดงอยู่\n• <b class='hl'>สกินหัวหอม</b>: มองทะลุเห็นภาพหน้าหลังได้\n• <span class='chip'>เล่น</span>: เล่นทั้ง 24 เฟรมที่ <b class='hl'>24 เฟรมต่อวินาที</b>\n• <span class='chip'>บันทึก GIF</span>: ส่งออกเป็น GIF"
   },
   fr: {
-    title: "Jeu de dessin d’animation GIF", titleHtml: "Animation GIF<br>Jeu de dessin", bnote: "Ouvrez dans un navigateur pour enregistrer l’animation GIF",
+    title: "Jeu de dessin d’animation GIF", titleHtml: "Animation GIF<br>Jeu de dessin", creditBy: "Fuffu", creditLabel: "Contact :", bnote: "Ouvrez dans un navigateur pour enregistrer l’animation GIF",
     pen: "Stylo", pencil: "Crayon", eraser: "Gomme", undo: "Annuler", redo: "Rétablir",
     posLabel: "Image affichée", slideHint: "(Glissez pour déplacer. 24 i/s)", posNum: " : image {n}",
     addInbetween: "Ajouter un<br>intervalle", deletePic: "Supprimer", layersBtn: "Calques",
@@ -504,7 +508,7 @@ var STR = {
     note: "Comment jouer\n• Au départ, l’image 1 est l’image des <b class='hl'>24 images</b>. Touchez la bande ou glissez le ▼ rouge pour changer l’image affichée.\n• <span class='chip'>Ajouter un intervalle</span> : sépare l’image après l’image choisie pour en créer une nouvelle.\n• Glissez le <b class='hl'>trait noir</b> en tête d’une image pour changer le nombre d’images de chacune. Franchir un trait échange le contenu des images. Glissez le trait tout à gauche vers la droite pour ajouter une image vierge au début.\n• Outils : <span class='chip'>Stylo</span> / <span class='chip'>Crayon</span> (trait gratté) / <span class='chip'>Gomme</span>. <span class='chip'>Annuler</span> corrige les erreurs.\n• <span class='chip'>Calques</span> : superposez des dessins (<b class='hl'>5 max</b>). Nombre, couleur et opacité des calques sont communs à toutes les images.\n• <span class='chip'>Supprimer</span> : efface l’image affichée.\n• <b class='hl'>Pelure d’oignon</b> : les images voisines apparaissent en transparence.\n• <span class='chip'>Lire</span> : lit les 24 images à <b class='hl'>24 i/s</b>.\n• <span class='chip'>Enregistrer GIF</span> : exporte un GIF."
   },
   es: {
-    title: "Juego de dibujo de animación GIF", titleHtml: "Animación GIF<br>Juego de dibujo", bnote: "Ábrelo en un navegador para guardar la animación GIF",
+    title: "Juego de dibujo de animación GIF", titleHtml: "Animación GIF<br>Juego de dibujo", creditBy: "Fuffu", creditLabel: "Contacto:", bnote: "Ábrelo en un navegador para guardar la animación GIF",
     pen: "Pluma", pencil: "Lápiz", eraser: "Borrador", undo: "Deshacer", redo: "Rehacer",
     posLabel: "Fotograma mostrado", slideHint: "(Desliza para mover. 24 fps)", posNum: ": fotograma {n}",
     addInbetween: "Añadir<br>intermedio", deletePic: "Eliminar", layersBtn: "Capas",
@@ -533,7 +537,7 @@ var STR = {
     note: "Cómo jugar\n• Al principio, la imagen 1 es la imagen de los <b class='hl'>24 fotogramas</b>. Toca la banda o desliza el ▼ rojo para cambiar el fotograma mostrado.\n• <span class='chip'>Añadir intermedio</span>: separa la imagen después del fotograma elegido y crea una nueva.\n• Arrastra la <b class='hl'>línea negra</b> al inicio de una imagen para cambiar cuántos fotogramas tiene cada una. Al cruzar una línea, el contenido de las imágenes se intercambia. Arrastra la línea de la izquierda hacia la derecha para añadir una imagen en blanco al principio.\n• Herramientas: <span class='chip'>Pluma</span> / <span class='chip'>Lápiz</span> (línea áspera) / <span class='chip'>Borrador</span>. <span class='chip'>Deshacer</span> corrige errores.\n• <span class='chip'>Capas</span>: dibuja en capas superpuestas (<b class='hl'>máx. 5</b>). El número, color y opacidad de las capas son comunes a todas las imágenes.\n• <span class='chip'>Eliminar</span>: borra la imagen mostrada.\n• <b class='hl'>Piel de cebolla</b>: las imágenes vecinas se ven a través.\n• <span class='chip'>Reproducir</span>: reproduce los 24 fotogramas a <b class='hl'>24 fps</b>.\n• <span class='chip'>Guardar GIF</span>: exporta un GIF."
   },
   ar: {
-    title: "لعبة رسم رسوم GIF المتحركة", titleHtml: "رسوم GIF متحركة<br>لعبة الرسم", bnote: "افتحه في المتصفح لحفظ رسوم GIF المتحركة",
+    title: "لعبة رسم رسوم GIF المتحركة", titleHtml: "رسوم GIF متحركة<br>لعبة الرسم", creditBy: "Fuffu", creditLabel: "للتواصل:", bnote: "افتحه في المتصفح لحفظ رسوم GIF المتحركة",
     pen: "قلم", pencil: "قلم رصاص", eraser: "ممحاة", undo: "تراجع", redo: "إعادة",
     posLabel: "الإطار المعروض", slideHint: "(مرّر للتحريك. 24 إطار/ث)", posNum: ": الإطار {n}",
     addInbetween: "إضافة<br>إطار بيني", deletePic: "حذف الإطار البيني", layersBtn: "الطبقات",
@@ -1290,7 +1294,7 @@ document.getElementById("btnFirst").addEventListener("click", function(){
 });
 
 /* ============ autosave ============ */
-var SAVE_KEY = "gifAnimGame.v33";
+var SAVE_KEY = "gifAnimGame.v34";
 var saveTimer = null;
 function saveAuto(){
   if (saveTimer) clearTimeout(saveTimer);
@@ -1510,6 +1514,7 @@ function applyLang(){
   btnRedo.innerHTML = T("redo");
   document.getElementById("posLabel").textContent = T("posLabel");
   document.getElementById("slideHint").textContent = T("slideHint");
+  document.getElementById("credit").innerHTML = "© 2026 " + T("creditBy") + "<br>" + T("creditLabel") + ' <a href="https://x.com/dokka_garapa" target="_blank" rel="noopener">X @dokka_garapa</a>';
   document.getElementById("btnInbetween").innerHTML = T("addInbetween");
   btnDelPic.textContent = T("deletePic");
   document.getElementById("btnLayer").innerHTML = T("layersBtn");
